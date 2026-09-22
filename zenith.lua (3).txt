@@ -1,0 +1,3842 @@
+--[[
+    ███████╗███████╗███╗   ██╗██╗████████╗██╗  ██╗
+    ╚══███╔╝██╔════╝████╗  ██║██║╚══██╔══╝██║  ██║
+      ███╔╝ █████╗  ██╔██╗ ██║██║   ██║   ███████║
+     ███╔╝  ██╔══╝  ██║╚██╗██║██║   ██║   ██╔══██║
+    ███████╗███████╗██║ ╚████║██║   ██║   ██║  ██║
+    ╚══════╝╚══════╝╚═╝  ╚═══╝╚═╝   ╚═╝   ╚═╝  ╚═╝
+    
+    Zenith - Roblox Enhancement Script
+    Built with Airflow-UI
+    Version: 1.0.0
+]]
+
+-- ============================================================
+--  SERVICES & CORE
+-- ============================================================
+local Players            = game:GetService("Players")
+local RunService         = game:GetService("RunService")
+local UserInputService   = game:GetService("UserInputService")
+local TweenService       = game:GetService("TweenService")
+local Workspace          = game:GetService("Workspace")
+local Lighting           = game:GetService("Lighting")
+local StarterGui         = game:GetService("StarterGui")
+local HttpService        = game:GetService("HttpService")
+local ReplicatedStorage  = game:GetService("ReplicatedStorage")
+local SoundService       = game:GetService("SoundService")
+local CoreGui            = game:GetService("CoreGui")
+
+local LocalPlayer        = Players.LocalPlayer
+local Camera             = Workspace.CurrentCamera
+local Mouse              = LocalPlayer:GetMouse()
+
+-- ============================================================
+--  LOAD AIRFLOW-UI
+-- ============================================================
+local Airflow = loadstring(game:HttpGet(
+    "https://raw.githubusercontent.com/PookiePepelsss/Airflow-UI/refs/heads/main/Source.luau"
+))()
+
+-- ============================================================
+--  STATE TABLE  (central store for all feature values)
+-- ============================================================
+local State = {
+    -- AIM
+    LegitAimbot        = false,
+    LegitSilent        = false,
+    LegitFOV           = false,
+    LegitFOVColor      = Color3.fromRGB(255, 255, 255),
+    LegitPart          = "Head",
+    LegitSmooth        = 0.5,
+    LegitPred          = 0.1,
+    LegitRadius        = 150,
+    LegitWallCheck     = true,
+    LegitFriendly      = false,
+    LegitResolver      = false,
+    LegitSticky        = false,
+    LegitAntiGround    = false,
+    LegitUseAirPart    = false,
+    MobileAutoTarget   = false,
+    -- RAGE
+    RagebotEnable      = false,
+    RagebotTeamCheck   = false,
+    RagebotAntiKatana  = false,
+    RagebotDesync      = false,
+    RagebotAutoEquip   = false,
+    RagebotNotify      = false,
+    ForceHitEnable     = false,
+    ForceHitPart       = "Head",
+    WallCheck          = false,
+    KOCheck            = false,
+    FFCheck            = false,
+    TriggerbotEnable   = false,
+    CameraLockEnable   = false,
+    CameraLockRange    = 50,
+    CameraLockSmooth   = 0.5,
+    KillAuraEnable     = false,
+    KillAuraRange      = 15,
+    KillAuraSilent     = false,
+    KillAuraVisualize  = false,
+    StrafeMode         = "Orbit",
+    StrafeSpeed        = 10,
+    StrafeDistance     = 10,
+    StrafeHeight       = 0,
+    -- TOOLS
+    KnifeBotAutoSwing  = false,
+    KnifeBotGlue       = false,
+    KnifeBotHitbox     = false,
+    KnifeBotHitboxVis  = false,
+    KnifeBotTargetStat = false,
+    KnifeBotDistance   = 10,
+    KnifeBotAttachPos  = "0,0,0",
+    DesyncEnable       = false,
+    DesyncMethod       = "Default",
+    SpinbotEnable      = false,
+    NoSpread           = false,
+    FullAuto           = false,
+    RapidFire          = false,
+    RapidFireV2        = false,
+    Stomp              = false,
+    AntiStomp          = false,
+    Flashback          = false,
+    AntiStompFB        = false,
+    EnablePrefire      = false,
+    AutoCalcPrefire    = false,
+    ForceReset         = false,
+    AntiFling          = false,
+    AntiSit            = false,
+    -- VISUALS
+    HitVisuals         = false,
+    HitVisualsColor    = Color3.fromRGB(255, 0, 0),
+    AmmoHUD            = false,
+    AmmoHUDPos         = "Normal",
+    AutoReload         = false,
+    AutoReloadCD       = 0.5,
+    BulletTracers      = false,
+    BulletTracersColor = Color3.fromRGB(255, 255, 255),
+    TracerDuration     = 0.5,
+    TracerWidth        = 2,
+    DBSpread           = 0,
+    HitSound           = false,
+    HitSoundType       = "Default",
+    CustomHitSound     = "",
+    HitNotify          = false,
+    NotifFormat        = "[Zenith] Hit {player} for {dmg}",
+    DamageIndicators   = false,
+    DmgIndColor1       = Color3.fromRGB(255, 50, 50),
+    DmgIndColor2       = Color3.fromRGB(255, 200, 0),
+    ESPEnable          = false,
+    ESPBox             = false,
+    ESPBoxFilled       = false,
+    ESPBoxGlow         = false,
+    ESPHealthBar       = false,
+    ESPArmorBar        = false,
+    ESPNames           = false,
+    ESPDistance        = false,
+    ESPWeapon          = false,
+    ESPShowSelf        = false,
+    ESPMaxDist         = 500,
+    SkeletonESP        = false,
+    SkeletonOutline    = false,
+    ParticleAura       = false,
+    ParticleColor      = Color3.fromRGB(100, 0, 255),
+    ParticleType       = "Sparkles",
+    CrosshairEnable    = false,
+    CrosshairFollow    = false,
+    CrosshairGap       = 5,
+    CrosshairLen       = 10,
+    CrosshairThick     = 2,
+    CrosshairRot       = 0,
+    CrosshairShadowX   = 1,
+    CrosshairShadowY   = 1,
+    CrosshairPulse     = 1,
+    FOVChangerEnable   = false,
+    FOVValue           = 70,
+    ShowTracer         = false,
+    GunMaterial        = false,
+    GunMatColor        = Color3.fromRGB(200, 200, 200),
+    GunMatType         = "SmoothPlastic",
+    WorldLighting      = false,
+    WorldLightTech     = "Compatibility",
+    WorldTime          = false,
+    WorldTimeVal       = 14,
+    WorldAtmo          = false,
+    AtmoColor1         = Color3.fromRGB(255, 255, 255),
+    AtmoColor2         = Color3.fromRGB(255, 255, 255),
+    AtmoHaze           = 0,
+    AtmoGlare          = 0,
+    AtmoOffset         = 0,
+    AtmoDensity        = 0.35,
+    WorldTextures      = false,
+    WorldTexType       = "Default",
+    WorldAmbient       = false,
+    AmbientColor1      = Color3.fromRGB(128, 128, 128),
+    AmbientColor2      = Color3.fromRGB(128, 128, 128),
+    WorldWeather       = false,
+    WeatherColor       = Color3.fromRGB(200, 220, 255),
+    WeatherType        = "Rain",
+    WeatherRate        = 20,
+    WorldSkybox        = false,
+    SkyboxType         = "Default",
+    BloomEnable        = false,
+    BloomIntensity     = 0.5,
+    BloomSize          = 24,
+    BloomThreshold     = 1,
+    ColorCorrEnable    = false,
+    CCBrightness       = 0,
+    CCContrast         = 0,
+    CCSaturation       = 0,
+    SunRaysEnable      = false,
+    NoPostFX           = false,
+    NoShadows          = false,
+    NoSkybox           = false,
+    ThirdPerson        = false,
+    CameraEnable       = false,
+    AspectRatio        = false,
+    AspectX            = 16,
+    AspectY            = 9,
+    -- SKINS
+    SkinChanger        = false,
+    DBSkin             = "Default",
+    RevolverSkin       = "Default",
+    TacShotgunSkin     = "Default",
+    SMGSkin            = "Default",
+    ShotgunSkin        = "Default",
+    KnifeSkin          = "Default",
+    BulletChanger      = false,
+    BulletTexture      = "Default",
+    Headless           = false,
+    Korblox            = false,
+    Chams              = false,
+    ChamsColor         = Color3.fromRGB(255, 0, 255),
+    RemoveAccs         = false,
+    CustomAcc          = "",
+    EnableDance        = false,
+    DanceType          = "Renegade",
+    EmoteSpeed         = 1,
+    LagAnimations      = false,
+    LagIntensity       = 1,
+    UnlockAllCosm      = false,
+    AlwaysFavCosm      = false,
+    FavoritesOnly      = false,
+    NameSpoofer        = false,
+    SpoofedName        = "",
+    DeviceSpoof        = false,
+    DeviceType         = "Mobile",
+    AvatarSpoof        = "None",
+    -- MISC PLAYER
+    Godmode            = false,
+    WalkSpeedEnable    = false,
+    WalkSpeedValue     = 16,
+    JumpPowerEnable    = false,
+    JumpPowerValue     = 50,
+    FlightEnable       = false,
+    FlightSpeed        = 50,
+    CFrameSpeedEnable  = false,
+    CFrameSpeedValue   = 1,
+    Noclip             = false,
+    AntiVoid           = false,
+    AntiAFK            = false,
+    AntiRejoin         = false,
+    Gravity            = 196.2,
+    HitboxExpand       = false,
+    HitboxSize         = 5,
+    HitboxVis          = false,
+    ForceField         = false,
+    -- MISC AUTOMATION
+    AutoQueue          = false,
+    AutoQueueMode      = "Normal",
+    AutoVoteMap        = false,
+    AutoVoteMapName    = "Any",
+    AutoReloadAuto     = false,
+    AutoFood           = false,
+    AutoLoadout        = false,
+    AutoPrimary        = "Default",
+    AutoSecondary      = "Default",
+    AutoMelee          = "Default",
+    AutoUtility        = "Default",
+    ShopAutoAmmo       = false,
+    ShopAutoGun        = false,
+    ShopAutoArmor      = false,
+    ShopAutoFireArmor  = false,
+    CashAura           = false,
+    CashAuraRange      = 20,
+    CashAuraCooldown   = 1,
+    ChatSpam           = false,
+    ChatSpamMsg        = "Zenith",
+    ChatSpamDelay      = 1,
+    ChatSpy            = false,
+    -- MISC MOVEMENT
+    MovStrafeSpeed     = 10,
+    MovStrafeDistance  = 10,
+    MovStrafeHeight    = 0,
+    MovStrafeMode      = "Orbit",
+    -- FARM
+    AutofarmEnable     = false,
+    AutofarmAntiAFK    = false,
+    AutofarmAimlock    = false,
+    FarmWinner         = "",
+    FarmLoser          = "",
+    FarmWeaponMode     = "Default",
+    FarmStaffGroupID   = "",
+    FarmFFDelay        = 1,
+    FarmSkyBoxHeight   = 500,
+    -- PERFORMANCE
+    UnlockFPS          = false,
+    PerfNoPostFX       = false,
+    PerfNoShadows      = false,
+    PerfNoSkybox       = false,
+    -- SETTINGS
+    AntiStaff          = false,
+    AntiStaffAction    = "Disconnect",
+    SpooferClearAvatar = false,
+    SpooferRename      = false,
+    SpooferFlushColors = false,
+    SpooferDeepScan    = false,
+}
+
+-- ============================================================
+--  UTILITY FUNCTIONS
+-- ============================================================
+
+-- Get the LocalPlayer's character root
+local function GetRoot()
+    local char = LocalPlayer.Character
+    return char and char:FindFirstChild("HumanoidRootPart")
+end
+
+-- Get the LocalPlayer's humanoid
+local function GetHumanoid()
+    local char = LocalPlayer.Character
+    return char and char:FindFirstChildOfClass("Humanoid")
+end
+
+-- Check if a player is an ally/friend
+local function IsFriend(player)
+    return LocalPlayer:IsFriendsWith(player.UserId)
+end
+
+-- Check line of sight
+local function HasLOS(origin, target)
+    local ray = Ray.new(origin, (target - origin).Unit * 1000)
+    local hit = Workspace:FindPartOnRayWithIgnoreList(ray, {LocalPlayer.Character})
+    if hit and hit:IsDescendantOf(Workspace) then
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player.Character and hit:IsDescendantOf(player.Character) then
+                return true
+            end
+        end
+        return false
+    end
+    return true
+end
+
+-- Get closest enemy to Mouse / Screen Center
+local function GetClosestEnemy(useFOV, fovRadius)
+    local closest    = nil
+    local closestDist = math.huge
+    local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player == LocalPlayer then continue end
+        if State.LegitFriendly and IsFriend(player) then continue end
+        local char = player.Character
+        if not char then continue end
+        local part = char:FindFirstChild(State.LegitPart) or char:FindFirstChild("HumanoidRootPart")
+        if not part then continue end
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if not hum or hum.Health <= 0 then continue end
+
+        local screenPos, onScreen = Camera:WorldToScreenPoint(part.Position)
+        if not onScreen then continue end
+        local dist2d = (Vector2.new(screenPos.X, screenPos.Y) - screenCenter).Magnitude
+
+        if useFOV and dist2d > fovRadius then continue end
+
+        if dist2d < closestDist then
+            closestDist = dist2d
+            closest = {player = player, part = part, dist2d = dist2d}
+        end
+    end
+    return closest
+end
+
+-- ============================================================
+--  IMPLEMENTATION LOOPS  (actual functionality)
+-- ============================================================
+
+local loops       = {}   -- named RunService connections
+local drawnObjects = {}  -- GUI drawing objects (ESP etc.)
+
+local function Disconnect(name)
+    if loops[name] then
+        loops[name]:Disconnect()
+        loops[name] = nil
+    end
+end
+
+-- ── Legit Aimbot ────────────────────────────────────────────
+local function StartLegitAimbot()
+    Disconnect("LegitAimbot")
+    loops["LegitAimbot"] = RunService.RenderStepped:Connect(function()
+        if not State.LegitAimbot then return end
+        if not UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then return end
+
+        local target = GetClosestEnemy(State.LegitFOV, State.LegitRadius)
+        if not target then return end
+        if State.LegitWallCheck then
+            local root = GetRoot()
+            if root and not HasLOS(root.Position, target.part.Position) then return end
+        end
+
+        local targetPos = target.part.Position
+        -- Prediction offset
+        local vel = target.part.AssemblyLinearVelocity
+        targetPos = targetPos + vel * State.LegitPred
+
+        local camCF   = Camera.CFrame
+        local targetCF = CFrame.new(camCF.Position, targetPos)
+        Camera.CFrame  = camCF:Lerp(targetCF, State.LegitSmooth)
+    end)
+end
+StartLegitAimbot()
+
+-- ── FOV Circle ──────────────────────────────────────────────
+local fovCircle = Drawing.new("Circle")
+fovCircle.Visible   = false
+fovCircle.Filled    = false
+fovCircle.Thickness = 1
+fovCircle.NumSides  = 64
+
+local function UpdateFOVCircle()
+    fovCircle.Visible  = State.LegitFOV and State.LegitAimbot
+    fovCircle.Radius   = State.LegitRadius
+    fovCircle.Color    = State.LegitFOVColor
+    fovCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+end
+
+Disconnect("FOVCircle")
+loops["FOVCircle"] = RunService.RenderStepped:Connect(function()
+    UpdateFOVCircle()
+end)
+
+-- ── Kill Aura ───────────────────────────────────────────────
+local function StartKillAura()
+    Disconnect("KillAura")
+    loops["KillAura"] = RunService.Heartbeat:Connect(function()
+        if not State.KillAuraEnable then return end
+        local root = GetRoot()
+        if not root then return end
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player == LocalPlayer then continue end
+            local char = player.Character
+            if not char then continue end
+            local enemyRoot = char:FindFirstChild("HumanoidRootPart")
+            if not enemyRoot then continue end
+            local dist = (root.Position - enemyRoot.Position).Magnitude
+            if dist <= State.KillAuraRange then
+                -- game-specific: fire hit event / damage
+                -- local hitEvent = ReplicatedStorage:FindFirstChild("HitEvent")
+                -- if hitEvent then hitEvent:FireServer(player) end
+            end
+        end
+    end)
+end
+StartKillAura()
+
+-- ── Camera Lock ─────────────────────────────────────────────
+local function StartCameraLock()
+    Disconnect("CameraLock")
+    loops["CameraLock"] = RunService.RenderStepped:Connect(function()
+        if not State.CameraLockEnable then return end
+        local target = GetClosestEnemy(true, State.CameraLockRange)
+        if not target then return end
+        local targetPos = target.part.Position
+        local camCF     = Camera.CFrame
+        local targetCF  = CFrame.new(camCF.Position, targetPos)
+        Camera.CFrame   = camCF:Lerp(targetCF, State.CameraLockSmooth)
+    end)
+end
+StartCameraLock()
+
+-- ── Spinbot ─────────────────────────────────────────────────
+local spinAngle = 0
+local function StartSpinbot()
+    Disconnect("Spinbot")
+    loops["Spinbot"] = RunService.RenderStepped:Connect(function()
+        if not State.SpinbotEnable then return end
+        local root = GetRoot()
+        if not root then return end
+        spinAngle = (spinAngle + 20) % 360
+        root.CFrame = root.CFrame * CFrame.Angles(0, math.rad(spinAngle), 0)
+    end)
+end
+StartSpinbot()
+
+-- ── Noclip ──────────────────────────────────────────────────
+local function StartNoclip()
+    Disconnect("Noclip")
+    loops["Noclip"] = RunService.Stepped:Connect(function()
+        if not State.Noclip then return end
+        local char = LocalPlayer.Character
+        if not char then return end
+        for _, part in ipairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    end)
+end
+StartNoclip()
+
+-- ── Anti AFK ────────────────────────────────────────────────
+local VirtualUser = game:GetService("VirtualUser")
+local function StartAntiAFK()
+    Disconnect("AntiAFK")
+    loops["AntiAFK"] = RunService.Heartbeat:Connect(function()
+        if not State.AntiAFK then return end
+        -- Prevent idle kick by simulating input
+        LocalPlayer.Idled:Connect(function()
+            VirtualUser:Button2Down(Vector2.new(0, 0), Camera.CFrame)
+            task.wait(0.1)
+            VirtualUser:Button2Up(Vector2.new(0, 0), Camera.CFrame)
+        end)
+    end)
+end
+StartAntiAFK()
+
+-- ── Walk Speed ──────────────────────────────────────────────
+local function ApplyWalkSpeed()
+    local hum = GetHumanoid()
+    if not hum then return end
+    if State.WalkSpeedEnable then
+        hum.WalkSpeed = State.WalkSpeedValue
+    else
+        hum.WalkSpeed = 16
+    end
+end
+
+LocalPlayer.CharacterAdded:Connect(function(char)
+    char:WaitForChild("Humanoid")
+    task.wait(0.5)
+    ApplyWalkSpeed()
+    if State.JumpPowerEnable then
+        local hum = GetHumanoid()
+        if hum then hum.JumpPower = State.JumpPowerValue end
+    end
+end)
+
+-- ── Jump Power ──────────────────────────────────────────────
+local function ApplyJumpPower()
+    local hum = GetHumanoid()
+    if not hum then return end
+    if State.JumpPowerEnable then
+        hum.JumpPower = State.JumpPowerValue
+    else
+        hum.JumpPower = 50
+    end
+end
+
+-- ── Flight ──────────────────────────────────────────────────
+local flightBodyVelocity = nil
+local flightBodyGyro     = nil
+
+local function EnableFlight()
+    local root = GetRoot()
+    if not root then return end
+    if flightBodyVelocity then flightBodyVelocity:Destroy() end
+    if flightBodyGyro then flightBodyGyro:Destroy() end
+
+    flightBodyVelocity          = Instance.new("BodyVelocity")
+    flightBodyVelocity.Velocity = Vector3.zero
+    flightBodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+    flightBodyVelocity.Parent   = root
+
+    flightBodyGyro          = Instance.new("BodyGyro")
+    flightBodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+    flightBodyGyro.D         = 100
+    flightBodyGyro.Parent    = root
+
+    Disconnect("Flight")
+    loops["Flight"] = RunService.RenderStepped:Connect(function()
+        if not State.FlightEnable then
+            if flightBodyVelocity then flightBodyVelocity:Destroy(); flightBodyVelocity = nil end
+            if flightBodyGyro     then flightBodyGyro:Destroy(); flightBodyGyro = nil end
+            Disconnect("Flight")
+            return
+        end
+        local cf    = Camera.CFrame
+        local vel   = Vector3.zero
+        local speed = State.FlightSpeed
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then vel = vel + cf.LookVector * speed end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then vel = vel - cf.LookVector * speed end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then vel = vel - cf.RightVector * speed end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then vel = vel + cf.RightVector * speed end
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then vel = vel + Vector3.new(0, speed, 0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then vel = vel - Vector3.new(0, speed, 0) end
+        flightBodyVelocity.Velocity = vel
+        flightBodyGyro.CFrame       = cf
+    end)
+end
+
+local function DisableFlight()
+    if flightBodyVelocity then flightBodyVelocity:Destroy(); flightBodyVelocity = nil end
+    if flightBodyGyro     then flightBodyGyro:Destroy(); flightBodyGyro = nil end
+    Disconnect("Flight")
+end
+
+-- ── Anti Void ───────────────────────────────────────────────
+local function StartAntiVoid()
+    Disconnect("AntiVoid")
+    loops["AntiVoid"] = RunService.Heartbeat:Connect(function()
+        if not State.AntiVoid then return end
+        local root = GetRoot()
+        if root and root.Position.Y < -100 then
+            root.CFrame = CFrame.new(0, 50, 0)
+        end
+    end)
+end
+StartAntiVoid()
+
+-- ── Gravity ─────────────────────────────────────────────────
+local function ApplyGravity(val)
+    Workspace.Gravity = val
+end
+
+-- ── Hitbox Expand ───────────────────────────────────────────
+local hitboxHighlights = {}
+local function ApplyHitboxExpand()
+    -- Clear old
+    for _, h in pairs(hitboxHighlights) do h:Destroy() end
+    hitboxHighlights = {}
+
+    if not State.HitboxExpand then
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player == LocalPlayer then continue end
+            local char = player.Character
+            if not char then continue end
+            local root = char:FindFirstChild("HumanoidRootPart")
+            if root then root.Size = Vector3.new(2, 2, 1) end
+        end
+        return
+    end
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player == LocalPlayer then continue end
+        local char = player.Character
+        if not char then continue end
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if root then
+            root.Size = Vector3.new(State.HitboxSize, State.HitboxSize, State.HitboxSize)
+            if State.HitboxVis then
+                local sel = Instance.new("SelectionBox")
+                sel.Adornee       = root
+                sel.SurfaceColor3 = Color3.fromRGB(255, 0, 0)
+                sel.LineThickness  = 0.05
+                sel.Parent         = CoreGui
+                hitboxHighlights[player.Name] = sel
+            end
+        end
+    end
+end
+
+-- ── ESP ─────────────────────────────────────────────────────
+local espHighlights = {}
+
+local function UpdateESP()
+    -- Clean stale entries
+    for name, h in pairs(espHighlights) do
+        if not Players:FindFirstChild(name) then
+            h:Destroy()
+            espHighlights[name] = nil
+        end
+    end
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player == LocalPlayer and not State.ESPShowSelf then continue end
+        local char = player.Character
+        if not char then
+            if espHighlights[player.Name] then
+                espHighlights[player.Name]:Destroy()
+                espHighlights[player.Name] = nil
+            end
+            continue
+        end
+
+        if State.ESPEnable then
+            if not espHighlights[player.Name] then
+                local h = Instance.new("Highlight")
+                h.Adornee          = char
+                h.FillTransparency = State.ESPBoxFilled and 0.5 or 1
+                h.OutlineColor3    = Color3.fromRGB(255, 50, 50)
+                h.FillColor3       = Color3.fromRGB(255, 50, 50)
+                h.Parent           = CoreGui
+                espHighlights[player.Name] = h
+            else
+                local h = espHighlights[player.Name]
+                h.Adornee          = char
+                h.FillTransparency = State.ESPBoxFilled and 0.5 or 1
+            end
+        else
+            if espHighlights[player.Name] then
+                espHighlights[player.Name]:Destroy()
+                espHighlights[player.Name] = nil
+            end
+        end
+    end
+end
+
+Disconnect("ESPUpdate")
+loops["ESPUpdate"] = RunService.Heartbeat:Connect(UpdateESP)
+
+-- ── Chams ───────────────────────────────────────────────────
+local chamsHighlights = {}
+local function UpdateChams()
+    for name, h in pairs(chamsHighlights) do
+        if not Players:FindFirstChild(name) then
+            h:Destroy(); chamsHighlights[name] = nil
+        end
+    end
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player == LocalPlayer then continue end
+        local char = player.Character
+        if not char then
+            if chamsHighlights[player.Name] then
+                chamsHighlights[player.Name]:Destroy()
+                chamsHighlights[player.Name] = nil
+            end
+            continue
+        end
+        if State.Chams then
+            if not chamsHighlights[player.Name] then
+                local h = Instance.new("Highlight")
+                h.Adornee          = char
+                h.FillColor3       = State.ChamsColor
+                h.FillTransparency = 0.3
+                h.OutlineTransparency = 1
+                h.DepthMode        = Enum.HighlightDepthMode.AlwaysOnTop
+                h.Parent           = CoreGui
+                chamsHighlights[player.Name] = h
+            else
+                chamsHighlights[player.Name].FillColor3 = State.ChamsColor
+            end
+        else
+            if chamsHighlights[player.Name] then
+                chamsHighlights[player.Name]:Destroy()
+                chamsHighlights[player.Name] = nil
+            end
+        end
+    end
+end
+Disconnect("Chams")
+loops["Chams"] = RunService.Heartbeat:Connect(UpdateChams)
+
+-- ── Crosshair ───────────────────────────────────────────────
+local crosshairLines = {}
+for i = 1, 4 do
+    local line = Drawing.new("Line")
+    line.Visible   = false
+    line.Thickness = 2
+    line.Color     = Color3.fromRGB(255, 255, 255)
+    crosshairLines[i] = line
+end
+
+local function UpdateCrosshair()
+    if not State.CrosshairEnable then
+        for _, l in ipairs(crosshairLines) do l.Visible = false end
+        return
+    end
+    local center = State.CrosshairFollow
+        and Vector2.new(Mouse.X, Mouse.Y)
+        or  Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+
+    local gap  = State.CrosshairGap
+    local len  = State.CrosshairLen
+    local th   = State.CrosshairThick
+
+    -- Up
+    crosshairLines[1].From    = center - Vector2.new(0, gap)
+    crosshairLines[1].To      = center - Vector2.new(0, gap + len)
+    crosshairLines[1].Thickness = th
+    crosshairLines[1].Visible   = true
+
+    -- Down
+    crosshairLines[2].From    = center + Vector2.new(0, gap)
+    crosshairLines[2].To      = center + Vector2.new(0, gap + len)
+    crosshairLines[2].Thickness = th
+    crosshairLines[2].Visible   = true
+
+    -- Left
+    crosshairLines[3].From    = center - Vector2.new(gap, 0)
+    crosshairLines[3].To      = center - Vector2.new(gap + len, 0)
+    crosshairLines[3].Thickness = th
+    crosshairLines[3].Visible   = true
+
+    -- Right
+    crosshairLines[4].From    = center + Vector2.new(gap, 0)
+    crosshairLines[4].To      = center + Vector2.new(gap + len, 0)
+    crosshairLines[4].Thickness = th
+    crosshairLines[4].Visible   = true
+end
+
+Disconnect("Crosshair")
+loops["Crosshair"] = RunService.RenderStepped:Connect(UpdateCrosshair)
+
+-- ── FOV Changer ─────────────────────────────────────────────
+local function ApplyFOV()
+    if State.FOVChangerEnable then
+        Camera.FieldOfView = State.FOVValue
+    else
+        Camera.FieldOfView = 70
+    end
+end
+
+-- ── Bloom & Post FX ─────────────────────────────────────────
+local function ApplyPostFX()
+    -- Bloom
+    local bloom = Lighting:FindFirstChildOfClass("BlurEffect")
+        or Lighting:FindFirstChild("Bloom")
+        or Instance.new("BloomEffect", Lighting)
+    if bloom:IsA("BloomEffect") then
+        bloom.Enabled   = State.BloomEnable
+        bloom.Intensity = State.BloomIntensity
+        bloom.Size      = State.BloomSize
+        bloom.Threshold = State.BloomThreshold
+    end
+
+    -- Color Correction
+    local cc = Lighting:FindFirstChildOfClass("ColorCorrectionEffect")
+        or Instance.new("ColorCorrectionEffect", Lighting)
+    cc.Enabled    = State.ColorCorrEnable
+    cc.Brightness = State.CCBrightness
+    cc.Contrast   = State.CCContrast
+    cc.Saturation = State.CCSaturation
+
+    -- Sun Rays
+    local sr = Lighting:FindFirstChildOfClass("SunRaysEffect")
+        or Instance.new("SunRaysEffect", Lighting)
+    sr.Enabled = State.SunRaysEnable
+
+    -- No Shadows
+    Lighting.GlobalShadows = not State.NoShadows
+
+    -- No Skybox / Sky
+    local sky = Lighting:FindFirstChildOfClass("Sky")
+    if sky then sky.Parent = State.NoSkybox and game:GetService("ServerStorage") or Lighting end
+end
+
+-- ── World Lighting ──────────────────────────────────────────
+local function ApplyWorldLighting()
+    if State.WorldLighting then
+        Lighting.Technology = Enum.Technology[State.WorldLightTech] or Enum.Technology.Compatibility
+    end
+    if State.WorldTime then
+        Lighting.ClockTime = State.WorldTimeVal
+    end
+    if State.WorldAtmo then
+        local atmo = Lighting:FindFirstChildOfClass("Atmosphere")
+            or Instance.new("Atmosphere", Lighting)
+        atmo.Haze    = State.AtmoHaze
+        atmo.Glare   = State.AtmoGlare
+        atmo.Offset  = State.AtmoOffset
+        atmo.Density = State.AtmoDensity
+        atmo.Color   = State.AtmoColor1
+        atmo.Decay   = State.AtmoColor2
+    end
+    if State.WorldAmbient then
+        Lighting.Ambient    = State.AmbientColor1
+        Lighting.OutdoorAmbient = State.AmbientColor2
+    end
+end
+
+-- ── Third Person ─────────────────────────────────────────────
+local function ApplyThirdPerson()
+    if State.ThirdPerson then
+        LocalPlayer.CameraMode = Enum.CameraMode.Classic
+        Camera.CameraType      = Enum.CameraType.Track
+    else
+        LocalPlayer.CameraMode = Enum.CameraMode.Classic
+    end
+end
+
+-- ── Particle Aura ───────────────────────────────────────────
+local selfParticle = nil
+local function UpdateParticleAura()
+    if selfParticle then selfParticle:Destroy(); selfParticle = nil end
+    if not State.ParticleAura then return end
+    local char = LocalPlayer.Character
+    if not char then return end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
+    local typeMap = {Sparkles = "Sparkles", Fire = "Fire", Smoke = "Smoke"}
+    local pType   = typeMap[State.ParticleType] or "Sparkles"
+    selfParticle  = Instance.new(pType)
+    if pType == "Sparkles" then
+        selfParticle.SparkleColor = State.ParticleColor
+    elseif pType == "Fire" then
+        selfParticle.Color = State.ParticleColor
+    end
+    selfParticle.Parent = root
+end
+
+-- ── Name Spoofer ─────────────────────────────────────────────
+local function ApplyNameSpoofer()
+    if State.NameSpoofer and State.SpoofedName ~= "" then
+        local gui = LocalPlayer.PlayerGui
+        -- Override nameplate via BillboardGui if possible
+        -- game-specific implementation may vary
+    end
+end
+
+-- ── Headless & Korblox ──────────────────────────────────────
+local function ApplyHeadless()
+    local char = LocalPlayer.Character
+    if not char then return end
+    local head = char:FindFirstChild("Head")
+    if head then
+        for _, acc in ipairs(char:GetChildren()) do
+            if acc:IsA("Accessory") then
+                local mesh = acc:FindFirstChildOfClass("SpecialMesh")
+                if mesh then mesh.Scale = State.Headless and Vector3.zero or Vector3.one end
+            end
+        end
+        head.Transparency = State.Headless and 1 or 0
+        local face = head:FindFirstChild("face")
+        if face then face.Transparency = State.Headless and 1 or 0 end
+    end
+end
+
+local function ApplyKorblox()
+    -- game-specific: morphs/accessories applied server-side typically
+    -- local char = LocalPlayer.Character
+    -- if State.Korblox then ... end
+end
+
+-- ── Remove Accessories ──────────────────────────────────────
+local function ApplyRemoveAccs()
+    local char = LocalPlayer.Character
+    if not char then return end
+    if State.RemoveAccs then
+        for _, acc in ipairs(char:GetChildren()) do
+            if acc:IsA("Accessory") then acc:Destroy() end
+        end
+    end
+end
+
+-- ── Force Field ─────────────────────────────────────────────
+local function ApplyForceField()
+    local char = LocalPlayer.Character
+    if not char then return end
+    if State.ForceField then
+        local ff = Instance.new("ForceField")
+        ff.Parent = char
+    else
+        for _, ff in ipairs(char:GetChildren()) do
+            if ff:IsA("ForceField") then ff:Destroy() end
+        end
+    end
+end
+
+-- ── Godmode (client-side visualization only) ─────────────────
+local function ApplyGodmode()
+    local hum = GetHumanoid()
+    if not hum then return end
+    if State.Godmode then
+        hum.MaxHealth = math.huge
+        hum.Health    = math.huge
+    end
+end
+
+-- ── No Post FX ──────────────────────────────────────────────
+local function ApplyNoPostFX()
+    for _, effect in ipairs(Lighting:GetChildren()) do
+        if effect:IsA("PostEffect") then
+            effect.Enabled = not (State.NoPostFX or State.PerfNoPostFX)
+        end
+    end
+end
+
+-- ── Unlock FPS ──────────────────────────────────────────────
+local function ApplyUnlockFPS()
+    if State.UnlockFPS then
+        setfpscap(0)     -- executor-specific
+    else
+        setfpscap(60)
+    end
+end
+
+-- ══════════════════════════════════════════════════════════════
+--  AIRFLOW WINDOW
+-- ══════════════════════════════════════════════════════════════
+local Window = Airflow:CreateWindow({
+    Title    = "Zenith",
+    SubTitle = "v1.0.0",
+    Icon     = "zap",
+    Theme    = {
+        Background       = Color3.fromRGB(10,  12,  20),
+        Secondary        = Color3.fromRGB(18,  20,  35),
+        Tertiary         = Color3.fromRGB(25,  28,  50),
+        Accent           = Color3.fromRGB(90,  60, 200),
+        AccentDark       = Color3.fromRGB(55,  35, 140),
+        Text             = Color3.fromRGB(230, 230, 255),
+        SubText          = Color3.fromRGB(150, 150, 190),
+        Enabled          = Color3.fromRGB(90,  60, 200),
+        Disabled         = Color3.fromRGB(60,  60,  90),
+        Border           = Color3.fromRGB(45,  40,  80),
+        Shadow           = Color3.fromRGB(5,    5,  15),
+    },
+    OpenButton = {
+        Title = "Zenith",
+        Icon  = "zap",
+    },
+    ConfigFolder = "ZenithConfigs",
+    KeyCode      = Enum.KeyCode.RightShift,
+})
+
+-- ══════════════════════════════════════════════════════════════
+--  ████████╗ █████╗ ██████╗     ██╗  ██╗██╗   ██╗██╗  ██╗
+--  ╚══██╔══╝██╔══██╗██╔══██╗    ██║  ██║██║   ██║██║  ██║
+--     ██║   ███████║██████╔╝    ███████║██║   ██║███████║
+--     ██║   ██╔══██║██╔══██╗    ██╔══██║╚██╗ ██╔╝██╔══██║
+--     ██║   ██║  ██║██████╔╝    ██║  ██║ ╚████╔╝ ██║  ██║
+--     ╚═╝   ╚═╝  ╚═╝╚═════╝     ╚═╝  ╚═╝  ╚═══╝  ╚═╝  ╚═╝
+-- ══════════════════════════════════════════════════════════════
+local HvHTab = Window:CreateTab({ Title = "HvH", Icon = "crosshair" })
+
+-- ────────────────────────────────────────────────────────────
+--  SUB-TAB : AIM
+-- ────────────────────────────────────────────────────────────
+local AimSection = HvHTab:CreateSection({ Title = "── AIM ──" })
+
+HvHTab:CreateToggle({
+    Section  = AimSection,
+    Title    = "Legit Aimbot",
+    Default  = false,
+    Keybind  = { Title = "Aimbot Key", Default = Enum.KeyCode.Unknown },
+    Callback = function(val)
+        State.LegitAimbot = val
+    end,
+})
+
+HvHTab:CreateToggle({
+    Section  = AimSection,
+    Title    = "Legit Silent",
+    Default  = false,
+    Callback = function(val)
+        State.LegitSilent = val
+        -- game-specific: silent aim hooks
+    end,
+})
+
+HvHTab:CreateToggle({
+    Section  = AimSection,
+    Title    = "Legit FOV",
+    Default  = false,
+    Callback = function(val)
+        State.LegitFOV = val
+        UpdateFOVCircle()
+    end,
+})
+
+HvHTab:CreateColorPicker({
+    Section  = AimSection,
+    Title    = "Legit FOV Color",
+    Default  = Color3.fromRGB(255, 255, 255),
+    Callback = function(val)
+        State.LegitFOVColor = val
+    end,
+})
+
+HvHTab:CreateDropdown({
+    Section  = AimSection,
+    Title    = "Legit Part",
+    Options  = { "Head", "UpperTorso", "HumanoidRootPart", "LowerTorso" },
+    Default  = "Head",
+    Callback = function(val)
+        State.LegitPart = val
+    end,
+})
+
+HvHTab:CreateSlider({
+    Section  = AimSection,
+    Title    = "Legit Smooth",
+    Min      = 0,
+    Max      = 1,
+    Default  = 0.5,
+    Decimals = 3,
+    Callback = function(val)
+        State.LegitSmooth = val
+    end,
+})
+
+HvHTab:CreateSlider({
+    Section  = AimSection,
+    Title    = "Legit Prediction",
+    Min      = 0,
+    Max      = 1,
+    Default  = 0.1,
+    Decimals = 3,
+    Callback = function(val)
+        State.LegitPred = val
+    end,
+})
+
+HvHTab:CreateSlider({
+    Section  = AimSection,
+    Title    = "Legit Radius",
+    Min      = 10,
+    Max      = 800,
+    Default  = 150,
+    Callback = function(val)
+        State.LegitRadius = val
+    end,
+})
+
+HvHTab:CreateToggle({
+    Section  = AimSection,
+    Title    = "Legit Wall Check",
+    Default  = true,
+    Callback = function(val)
+        State.LegitWallCheck = val
+    end,
+})
+
+HvHTab:CreateToggle({
+    Section  = AimSection,
+    Title    = "Legit Friendly (Skip Friends)",
+    Default  = false,
+    Callback = function(val)
+        State.LegitFriendly = val
+    end,
+})
+
+HvHTab:CreateToggle({
+    Section  = AimSection,
+    Title    = "Legit Resolver",
+    Default  = false,
+    Callback = function(val)
+        State.LegitResolver = val
+        -- game-specific
+    end,
+})
+
+HvHTab:CreateToggle({
+    Section  = AimSection,
+    Title    = "Legit Sticky",
+    Default  = false,
+    Callback = function(val)
+        State.LegitSticky = val
+        -- game-specific
+    end,
+})
+
+HvHTab:CreateToggle({
+    Section  = AimSection,
+    Title    = "Legit Anti Ground",
+    Default  = false,
+    Callback = function(val)
+        State.LegitAntiGround = val
+    end,
+})
+
+HvHTab:CreateToggle({
+    Section  = AimSection,
+    Title    = "Legit Use Air Part",
+    Default  = false,
+    Callback = function(val)
+        State.LegitUseAirPart = val
+    end,
+})
+
+HvHTab:CreateToggle({
+    Section  = AimSection,
+    Title    = "Mobile Auto Target",
+    Default  = false,
+    Callback = function(val)
+        State.MobileAutoTarget = val
+    end,
+})
+
+-- ────────────────────────────────────────────────────────────
+--  SUB-TAB : RAGE
+-- ────────────────────────────────────────────────────────────
+HvHTab:CreateDivider({ Section = AimSection })
+local RageSection = HvHTab:CreateSection({ Title = "── RAGE ──" })
+
+HvHTab:CreateToggle({
+    Section  = RageSection,
+    Title    = "Ragebot Enable",
+    Default  = false,
+    Callback = function(val)
+        State.RagebotEnable = val
+        -- game-specific
+    end,
+})
+
+HvHTab:CreateToggle({
+    Section  = RageSection,
+    Title    = "Ragebot Team Check",
+    Default  = false,
+    Callback = function(val)
+        State.RagebotTeamCheck = val
+    end,
+})
+
+HvHTab:CreateToggle({
+    Section  = RageSection,
+    Title    = "Ragebot Anti Katana",
+    Default  = false,
+    Callback = function(val)
+        State.RagebotAntiKatana = val
+        -- game-specific
+    end,
+})
+
+HvHTab:CreateToggle({
+    Section  = RageSection,
+    Title    = "Ragebot Desync",
+    Default  = false,
+    Callback = function(val)
+        State.RagebotDesync = val
+        -- game-specific
+    end,
+})
+
+HvHTab:CreateToggle({
+    Section  = RageSection,
+    Title    = "Ragebot Auto Equip",
+    Default  = false,
+    Callback = function(val)
+        State.RagebotAutoEquip = val
+        -- game-specific
+    end,
+})
+
+HvHTab:CreateToggle({
+    Section  = RageSection,
+    Title    = "Ragebot Notify",
+    Default  = false,
+    Callback = function(val)
+        State.RagebotNotify = val
+    end,
+})
+
+HvHTab:CreateDivider({ Section = RageSection })
+
+HvHTab:CreateToggle({
+    Section  = RageSection,
+    Title    = "Force Hit Enable",
+    Default  = false,
+    Keybind  = { Title = "Force Hit Key", Default = Enum.KeyCode.Unknown },
+    Callback = function(val)
+        State.ForceHitEnable = val
+        -- game-specific
+    end,
+})
+
+HvHTab:CreateDropdown({
+    Section  = RageSection,
+    Title    = "Force Hit Part",
+    Options  = { "Head", "UpperTorso", "HumanoidRootPart", "LowerTorso" },
+    Default  = "Head",
+    Callback = function(val)
+        State.ForceHitPart = val
+    end,
+})
+
+HvHTab:CreateToggle({
+    Section  = RageSection,
+    Title    = "Wall Check",
+    Default  = false,
+    Callback = function(val)
+        State.WallCheck = val
+    end,
+})
+
+HvHTab:CreateToggle({
+    Section  = RageSection,
+    Title    = "KO Check",
+    Default  = false,
+    Callback = function(val)
+        State.KOCheck = val
+    end,
+})
+
+HvHTab:CreateToggle({
+    Section  = RageSection,
+    Title    = "ForceField Check",
+    Default  = false,
+    Callback = function(val)
+        State.FFCheck = val
+        -- game-specific
+    end,
+})
+
+HvHTab:CreateDivider({ Section = RageSection })
+
+HvHTab:CreateToggle({
+    Section  = RageSection,
+    Title    = "Triggerbot Enable",
+    Default  = false,
+    Keybind  = { Title = "Triggerbot Key", Default = Enum.KeyCode.Unknown },
+    Callback = function(val)
+        State.TriggerbotEnable = val
+        -- game-specific
+    end,
+})
+
+HvHTab:CreateDivider({ Section = RageSection })
+
+HvHTab:CreateToggle({
+    Section  = RageSection,
+    Title    = "Camera Lock Enable",
+    Default  = false,
+    Callback = function(val)
+        State.CameraLockEnable = val
+        StartCameraLock()
+    end,
+})
+
+HvHTab:CreateSlider({
+    Section  = RageSection,
+    Title    = "Camera Lock Range",
+    Min      = 1,
+    Max      = 500,
+    Default  = 50,
+    Callback = function(val)
+        State.CameraLockRange = val
+    end,
+})
+
+HvHTab:CreateSlider({
+    Section  = RageSection,
+    Title    = "Camera Lock Smoothness",
+    Min      = 0,
+    Max      = 1,
+    Default  = 0.5,
+    Decimals = 2,
+    Callback = function(val)
+        State.CameraLockSmooth = val
+    end,
+})
+
+HvHTab:CreateDivider({ Section = RageSection })
+
+HvHTab:CreateToggle({
+    Section  = RageSection,
+    Title    = "Kill Aura Enable",
+    Default  = false,
+    Keybind  = { Title = "Kill Aura Key", Default = Enum.KeyCode.Unknown },
+    Callback = function(val)
+        State.KillAuraEnable = val
+    end,
+})
+
+HvHTab:CreateSlider({
+    Section  = RageSection,
+    Title    = "Kill Aura Range",
+    Min      = 1,
+    Max      = 100,
+    Default  = 15,
+    Callback = function(val)
+        State.KillAuraRange = val
+    end,
+})
+
+HvHTab:CreateToggle({
+    Section  = RageSection,
+    Title    = "Kill Aura Silent",
+    Default  = false,
+    Callback = function(val)
+        State.KillAuraSilent = val
+    end,
+})
+
+HvHTab:CreateToggle({
+    Section  = RageSection,
+    Title    = "Kill Aura Visualize",
+    Default  = false,
+    Callback = function(val)
+        State.KillAuraVisualize = val
+    end,
+})
+
+HvHTab:CreateDivider({ Section = RageSection })
+HvHTab:CreateLabel({ Section = RageSection, Title = "Strafe Settings" })
+
+HvHTab:CreateDropdown({
+    Section  = RageSection,
+    Title    = "Strafe Mode",
+    Options  = { "Orbit", "Random", "Void Shoot" },
+    Default  = "Orbit",
+    Callback = function(val)
+        State.StrafeMode = val
+    end,
+})
+
+HvHTab:CreateSlider({
+    Section  = RageSection,
+    Title    = "Strafe Speed",
+    Min      = 1,
+    Max      = 100,
+    Default  = 10,
+    Callback = function(val)
+        State.StrafeSpeed = val
+    end,
+})
+
+HvHTab:CreateSlider({
+    Section  = RageSection,
+    Title    = "Strafe Distance",
+    Min      = 1,
+    Max      = 100,
+    Default  = 10,
+    Callback = function(val)
+        State.StrafeDistance = val
+    end,
+})
+
+HvHTab:CreateSlider({
+    Section  = RageSection,
+    Title    = "Strafe Height",
+    Min      = -50,
+    Max      = 50,
+    Default  = 0,
+    Callback = function(val)
+        State.StrafeHeight = val
+    end,
+})
+
+-- ────────────────────────────────────────────────────────────
+--  SUB-TAB : TOOLS
+-- ────────────────────────────────────────────────────────────
+HvHTab:CreateDivider({ Section = RageSection })
+local ToolsSection = HvHTab:CreateSection({ Title = "── TOOLS ──" })
+
+HvHTab:CreateLabel({ Section = ToolsSection, Title = "KnifeBot" })
+
+HvHTab:CreateToggle({
+    Section  = ToolsSection,
+    Title    = "KnifeBot Auto Swing",
+    Default  = false,
+    Callback = function(val)
+        State.KnifeBotAutoSwing = val
+        -- game-specific
+    end,
+})
+
+HvHTab:CreateToggle({
+    Section  = ToolsSection,
+    Title    = "KnifeBot Glue",
+    Default  = false,
+    Callback = function(val)
+        State.KnifeBotGlue = val
+        -- game-specific
+    end,
+})
+
+HvHTab:CreateToggle({
+    Section  = ToolsSection,
+    Title    = "KnifeBot Hitbox",
+    Default  = false,
+    Callback = function(val)
+        State.KnifeBotHitbox = val
+        -- game-specific
+    end,
+})
+
+HvHTab:CreateToggle({
+    Section  = ToolsSection,
+    Title    = "KnifeBot Hitbox Visualize",
+    Default  = false,
+    Callback = function(val)
+        State.KnifeBotHitboxVis = val
+        -- game-specific
+    end,
+})
+
+HvHTab:CreateToggle({
+    Section  = ToolsSection,
+    Title    = "KnifeBot Target Status",
+    Default  = false,
+    Callback = function(val)
+        State.KnifeBotTargetStat = val
+    end,
+})
+
+HvHTab:CreateSlider({
+    Section  = ToolsSection,
+    Title    = "KnifeBot Distance",
+    Min      = 1,
+    Max      = 50,
+    Default  = 10,
+    Callback = function(val)
+        State.KnifeBotDistance = val
+    end,
+})
+
+HvHTab:CreateInput({
+    Section  = ToolsSection,
+    Title    = "KnifeBot Attach Position",
+    Default  = "0,0,0",
+    Callback = function(val)
+        State.KnifeBotAttachPos = val
+    end,
+})
+
+HvHTab:CreateDivider({ Section = ToolsSection })
+HvHTab:CreateLabel({ Section = ToolsSection, Title = "Misc Tools" })
+
+HvHTab:CreateToggle({
+    Section  = ToolsSection,
+    Title    = "Desync",
+    Default  = false,
+    Keybind  = { Title = "Desync Key", Default = Enum.KeyCode.Unknown },
+    Callback = function(val)
+        State.DesyncEnable = val
+        -- game-specific
+    end,
+})
+
+HvHTab:CreateDropdown({
+    Section  = ToolsSection,
+    Title    = "Desync Method",
+    Options  = { "Default", "Jitter", "Flip", "Static" },
+    Default  = "Default",
+    Callback = function(val)
+        State.DesyncMethod = val
+    end,
+})
+
+HvHTab:CreateToggle({
+    Section  = ToolsSection,
+    Title    = "Spinbot",
+    Default  = false,
+    Callback = function(val)
+        State.SpinbotEnable = val
+        if not val then
+            Disconnect("Spinbot")
+        else
+            StartSpinbot()
+        end
+    end,
+})
+
+HvHTab:CreateToggle({
+    Section  = ToolsSection,
+    Title    = "No Spread",
+    Default  = false,
+    Callback = function(val)
+        State.NoSpread = val
+        -- game-specific
+    end,
+})
+
+HvHTab:CreateToggle({
+    Section  = ToolsSection,
+    Title    = "Full Auto",
+    Default  = false,
+    Callback = function(val)
+        State.FullAuto = val
+        -- game-specific
+    end,
+})
+
+HvHTab:CreateToggle({
+    Section  = ToolsSection,
+    Title    = "Rapid Fire",
+    Default  = false,
+    Callback = function(val)
+        State.RapidFire = val
+        -- game-specific
+    end,
+})
+
+HvHTab:CreateToggle({
+    Section  = ToolsSection,
+    Title    = "Rapid Fire V2",
+    Default  = false,
+    Callback = function(val)
+        State.RapidFireV2 = val
+        -- game-specific
+    end,
+})
+
+HvHTab:CreateToggle({
+    Section  = ToolsSection,
+    Title    = "Stomp",
+    Default  = false,
+    Callback = function(val)
+        State.Stomp = val
+        -- game-specific
+    end,
+})
+
+HvHTab:CreateToggle({
+    Section  = ToolsSection,
+    Title    = "Anti Stomp",
+    Default  = false,
+    Callback = function(val)
+        State.AntiStomp = val
+        -- game-specific
+    end,
+})
+
+HvHTab:CreateToggle({
+    Section  = ToolsSection,
+    Title    = "Flashback",
+    Default  = false,
+    Callback = function(val)
+        State.Flashback = val
+        -- game-specific
+    end,
+})
+
+HvHTab:CreateToggle({
+    Section  = ToolsSection,
+    Title    = "Anti Stomp Flashback",
+    Default  = false,
+    Callback = function(val)
+        State.AntiStompFB = val
+        -- game-specific
+    end,
+})
+
+HvHTab:CreateToggle({
+    Section  = ToolsSection,
+    Title    = "Enable Prefire",
+    Default  = false,
+    Callback = function(val)
+        State.EnablePrefire = val
+        -- game-specific
+    end,
+})
+
+HvHTab:CreateToggle({
+    Section  = ToolsSection,
+    Title    = "Auto Calc Prefire",
+    Default  = false,
+    Callback = function(val)
+        State.AutoCalcPrefire = val
+        -- game-specific
+    end,
+})
+
+HvHTab:CreateToggle({
+    Section  = ToolsSection,
+    Title    = "Force Reset",
+    Default  = false,
+    Keybind  = { Title = "Force Reset Key", Default = Enum.KeyCode.Unknown },
+    Callback = function(val)
+        State.ForceReset = val
+        if val then
+            local hum = GetHumanoid()
+            if hum then hum.Health = 0 end
+        end
+    end,
+})
+
+HvHTab:CreateToggle({
+    Section  = ToolsSection,
+    Title    = "Anti Fling",
+    Default  = false,
+    Callback = function(val)
+        State.AntiFling = val
+        -- game-specific
+    end,
+})
+
+HvHTab:CreateToggle({
+    Section  = ToolsSection,
+    Title    = "Anti Sit",
+    Default  = false,
+    Callback = function(val)
+        State.AntiSit = val
+        -- game-specific
+    end,
+})
+
+-- ══════════════════════════════════════════════════════════════
+--  ██╗   ██╗██╗███████╗██╗   ██╗ █████╗ ██╗     ███████╗
+--  ██║   ██║██║██╔════╝██║   ██║██╔══██╗██║     ██╔════╝
+--  ██║   ██║██║███████╗██║   ██║███████║██║     ███████╗
+--  ╚██╗ ██╔╝██║╚════██║██║   ██║██╔══██║██║     ╚════██║
+--   ╚████╔╝ ██║███████║╚██████╔╝██║  ██║███████╗███████║
+--    ╚═══╝  ╚═╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝╚══════╝
+-- ══════════════════════════════════════════════════════════════
+local VisualsTab = Window:CreateTab({ Title = "Visuals", Icon = "eye" })
+
+-- ── HUD ─────────────────────────────────────────────────────
+local HUDSection = VisualsTab:CreateSection({ Title = "── HUD ──" })
+
+VisualsTab:CreateToggle({
+    Section  = HUDSection,
+    Title    = "Hit Visuals / Target HUD",
+    Default  = false,
+    Callback = function(val)
+        State.HitVisuals = val
+        -- game-specific: hook hit events to display overlay
+    end,
+})
+
+VisualsTab:CreateColorPicker({
+    Section  = HUDSection,
+    Title    = "Hit Visuals Color",
+    Default  = Color3.fromRGB(255, 0, 0),
+    Callback = function(val)
+        State.HitVisualsColor = val
+    end,
+})
+
+VisualsTab:CreateToggle({
+    Section  = HUDSection,
+    Title    = "Ammo HUD",
+    Default  = false,
+    Callback = function(val)
+        State.AmmoHUD = val
+        -- game-specific
+    end,
+})
+
+VisualsTab:CreateDropdown({
+    Section  = HUDSection,
+    Title    = "Ammo HUD Position",
+    Options  = { "Normal", "Top", "Left", "Right" },
+    Default  = "Normal",
+    Callback = function(val)
+        State.AmmoHUDPos = val
+    end,
+})
+
+VisualsTab:CreateToggle({
+    Section  = HUDSection,
+    Title    = "Auto Reload",
+    Default  = false,
+    Callback = function(val)
+        State.AutoReload = val
+        -- game-specific
+    end,
+})
+
+VisualsTab:CreateSlider({
+    Section  = HUDSection,
+    Title    = "Auto Reload Cooldown",
+    Min      = 0,
+    Max      = 5,
+    Default  = 0.5,
+    Decimals = 1,
+    Callback = function(val)
+        State.AutoReloadCD = val
+    end,
+})
+
+-- ── BULLET / HIT FX ─────────────────────────────────────────
+VisualsTab:CreateDivider({ Section = HUDSection })
+local BulletSection = VisualsTab:CreateSection({ Title = "── BULLET / HIT FX ──" })
+
+VisualsTab:CreateToggle({
+    Section  = BulletSection,
+    Title    = "Bullet Tracers",
+    Default  = false,
+    Callback = function(val)
+        State.BulletTracers = val
+        -- game-specific: hook projectile fire events
+    end,
+})
+
+VisualsTab:CreateColorPicker({
+    Section  = BulletSection,
+    Title    = "Bullet Tracer Color",
+    Default  = Color3.fromRGB(255, 255, 255),
+    Callback = function(val)
+        State.BulletTracersColor = val
+    end,
+})
+
+VisualsTab:CreateSlider({
+    Section  = BulletSection,
+    Title    = "Tracer Duration",
+    Min      = 0,
+    Max      = 5,
+    Default  = 0.5,
+    Decimals = 1,
+    Callback = function(val)
+        State.TracerDuration = val
+    end,
+})
+
+VisualsTab:CreateSlider({
+    Section  = BulletSection,
+    Title    = "Tracer Width",
+    Min      = 1,
+    Max      = 20,
+    Default  = 2,
+    Callback = function(val)
+        State.TracerWidth = val
+    end,
+})
+
+VisualsTab:CreateSlider({
+    Section  = BulletSection,
+    Title    = "Double Barrel Spread",
+    Min      = 0,
+    Max      = 100,
+    Default  = 0,
+    Callback = function(val)
+        State.DBSpread = val
+        -- game-specific
+    end,
+})
+
+VisualsTab:CreateToggle({
+    Section  = BulletSection,
+    Title    = "Hit Sound",
+    Default  = false,
+    Callback = function(val)
+        State.HitSound = val
+    end,
+})
+
+VisualsTab:CreateDropdown({
+    Section  = BulletSection,
+    Title    = "Hit Sound Type",
+    Options  = { "Default", "Beep", "Ding", "Metal", "Custom" },
+    Default  = "Default",
+    Callback = function(val)
+        State.HitSoundType = val
+    end,
+})
+
+VisualsTab:CreateInput({
+    Section  = BulletSection,
+    Title    = "Custom Hit Sound ID",
+    Default  = "",
+    Callback = function(val)
+        State.CustomHitSound = val
+    end,
+})
+
+VisualsTab:CreateToggle({
+    Section  = BulletSection,
+    Title    = "Hit Notify",
+    Default  = false,
+    Callback = function(val)
+        State.HitNotify = val
+    end,
+})
+
+VisualsTab:CreateInput({
+    Section  = BulletSection,
+    Title    = "Notif Format",
+    Default  = "[Zenith] Hit {player} for {dmg}",
+    Callback = function(val)
+        State.NotifFormat = val
+    end,
+})
+
+VisualsTab:CreateToggle({
+    Section  = BulletSection,
+    Title    = "Damage Indicators",
+    Default  = false,
+    Callback = function(val)
+        State.DamageIndicators = val
+        -- game-specific: hook damage events
+    end,
+})
+
+VisualsTab:CreateColorPicker({
+    Section  = BulletSection,
+    Title    = "Damage Indicator Color 1",
+    Default  = Color3.fromRGB(255, 50, 50),
+    Callback = function(val)
+        State.DmgIndColor1 = val
+    end,
+})
+
+VisualsTab:CreateColorPicker({
+    Section  = BulletSection,
+    Title    = "Damage Indicator Color 2",
+    Default  = Color3.fromRGB(255, 200, 0),
+    Callback = function(val)
+        State.DmgIndColor2 = val
+    end,
+})
+
+-- ── ESP ─────────────────────────────────────────────────────
+VisualsTab:CreateDivider({ Section = BulletSection })
+local ESPSection = VisualsTab:CreateSection({ Title = "── ESP ──" })
+
+VisualsTab:CreateToggle({
+    Section  = ESPSection,
+    Title    = "ESP Enable",
+    Default  = false,
+    Callback = function(val)
+        State.ESPEnable = val
+    end,
+})
+
+VisualsTab:CreateToggle({
+    Section  = ESPSection,
+    Title    = "ESP Box",
+    Default  = false,
+    Callback = function(val)
+        State.ESPBox = val
+        -- game-specific
+    end,
+})
+
+VisualsTab:CreateToggle({
+    Section  = ESPSection,
+    Title    = "ESP Box Filled",
+    Default  = false,
+    Callback = function(val)
+        State.ESPBoxFilled = val
+    end,
+})
+
+VisualsTab:CreateToggle({
+    Section  = ESPSection,
+    Title    = "ESP Box Glow",
+    Default  = false,
+    Callback = function(val)
+        State.ESPBoxGlow = val
+    end,
+})
+
+VisualsTab:CreateToggle({
+    Section  = ESPSection,
+    Title    = "ESP Health Bar",
+    Default  = false,
+    Callback = function(val)
+        State.ESPHealthBar = val
+        -- game-specific
+    end,
+})
+
+VisualsTab:CreateToggle({
+    Section  = ESPSection,
+    Title    = "ESP Armor Bar",
+    Default  = false,
+    Callback = function(val)
+        State.ESPArmorBar = val
+        -- game-specific
+    end,
+})
+
+VisualsTab:CreateToggle({
+    Section  = ESPSection,
+    Title    = "ESP Names",
+    Default  = false,
+    Callback = function(val)
+        State.ESPNames = val
+    end,
+})
+
+VisualsTab:CreateToggle({
+    Section  = ESPSection,
+    Title    = "ESP Distance",
+    Default  = false,
+    Callback = function(val)
+        State.ESPDistance = val
+    end,
+})
+
+VisualsTab:CreateToggle({
+    Section  = ESPSection,
+    Title    = "ESP Weapon",
+    Default  = false,
+    Callback = function(val)
+        State.ESPWeapon = val
+        -- game-specific
+    end,
+})
+
+VisualsTab:CreateToggle({
+    Section  = ESPSection,
+    Title    = "ESP Show On Self",
+    Default  = false,
+    Callback = function(val)
+        State.ESPShowSelf = val
+    end,
+})
+
+VisualsTab:CreateSlider({
+    Section  = ESPSection,
+    Title    = "ESP Max Distance",
+    Min      = 50,
+    Max      = 2000,
+    Default  = 500,
+    Callback = function(val)
+        State.ESPMaxDist = val
+    end,
+})
+
+VisualsTab:CreateToggle({
+    Section  = ESPSection,
+    Title    = "Skeleton ESP",
+    Default  = false,
+    Callback = function(val)
+        State.SkeletonESP = val
+        -- game-specific: draw bone lines
+    end,
+})
+
+VisualsTab:CreateToggle({
+    Section  = ESPSection,
+    Title    = "Skeleton ESP Outline",
+    Default  = false,
+    Callback = function(val)
+        State.SkeletonOutline = val
+    end,
+})
+
+-- ── SELF AURA ───────────────────────────────────────────────
+VisualsTab:CreateDivider({ Section = ESPSection })
+local AuraSection = VisualsTab:CreateSection({ Title = "── SELF AURA ──" })
+
+VisualsTab:CreateToggle({
+    Section  = AuraSection,
+    Title    = "Particle Aura",
+    Default  = false,
+    Callback = function(val)
+        State.ParticleAura = val
+        UpdateParticleAura()
+    end,
+})
+
+VisualsTab:CreateColorPicker({
+    Section  = AuraSection,
+    Title    = "Particle Color",
+    Default  = Color3.fromRGB(100, 0, 255),
+    Callback = function(val)
+        State.ParticleColor = val
+        UpdateParticleAura()
+    end,
+})
+
+VisualsTab:CreateDropdown({
+    Section  = AuraSection,
+    Title    = "Particle Type",
+    Options  = { "Sparkles", "Fire", "Smoke" },
+    Default  = "Sparkles",
+    Callback = function(val)
+        State.ParticleType = val
+        UpdateParticleAura()
+    end,
+})
+
+-- ── CROSSHAIR ───────────────────────────────────────────────
+VisualsTab:CreateDivider({ Section = AuraSection })
+local CrosshairSection = VisualsTab:CreateSection({ Title = "── CROSSHAIR ──" })
+
+VisualsTab:CreateToggle({
+    Section  = CrosshairSection,
+    Title    = "Crosshair Enable",
+    Default  = false,
+    Callback = function(val)
+        State.CrosshairEnable = val
+    end,
+})
+
+VisualsTab:CreateToggle({
+    Section  = CrosshairSection,
+    Title    = "Follow Mouse",
+    Default  = false,
+    Callback = function(val)
+        State.CrosshairFollow = val
+    end,
+})
+
+VisualsTab:CreateSlider({
+    Section  = CrosshairSection,
+    Title    = "Gap",
+    Min      = 0,
+    Max      = 50,
+    Default  = 5,
+    Callback = function(val)
+        State.CrosshairGap = val
+    end,
+})
+
+VisualsTab:CreateSlider({
+    Section  = CrosshairSection,
+    Title    = "Length",
+    Min      = 1,
+    Max      = 50,
+    Default  = 10,
+    Callback = function(val)
+        State.CrosshairLen = val
+    end,
+})
+
+VisualsTab:CreateSlider({
+    Section  = CrosshairSection,
+    Title    = "Thickness",
+    Min      = 1,
+    Max      = 10,
+    Default  = 2,
+    Callback = function(val)
+        State.CrosshairThick = val
+    end,
+})
+
+VisualsTab:CreateSlider({
+    Section  = CrosshairSection,
+    Title    = "Rotation",
+    Min      = 0,
+    Max      = 360,
+    Default  = 0,
+    Callback = function(val)
+        State.CrosshairRot = val
+    end,
+})
+
+VisualsTab:CreateSlider({
+    Section  = CrosshairSection,
+    Title    = "Shadow X",
+    Min      = 0,
+    Max      = 10,
+    Default  = 1,
+    Callback = function(val)
+        State.CrosshairShadowX = val
+    end,
+})
+
+VisualsTab:CreateSlider({
+    Section  = CrosshairSection,
+    Title    = "Shadow Y",
+    Min      = 0,
+    Max      = 10,
+    Default  = 1,
+    Callback = function(val)
+        State.CrosshairShadowY = val
+    end,
+})
+
+VisualsTab:CreateSlider({
+    Section  = CrosshairSection,
+    Title    = "Pulse Speed",
+    Min      = 0,
+    Max      = 10,
+    Default  = 1,
+    Decimals = 1,
+    Callback = function(val)
+        State.CrosshairPulse = val
+    end,
+})
+
+-- ── CAMERA / FOV ────────────────────────────────────────────
+VisualsTab:CreateDivider({ Section = CrosshairSection })
+local CamSection = VisualsTab:CreateSection({ Title = "── CAMERA / FOV ──" })
+
+VisualsTab:CreateToggle({
+    Section  = CamSection,
+    Title    = "FOV Changer",
+    Default  = false,
+    Callback = function(val)
+        State.FOVChangerEnable = val
+        ApplyFOV()
+    end,
+})
+
+VisualsTab:CreateSlider({
+    Section  = CamSection,
+    Title    = "FOV Value",
+    Min      = 1,
+    Max      = 120,
+    Default  = 70,
+    Callback = function(val)
+        State.FOVValue = val
+        if State.FOVChangerEnable then ApplyFOV() end
+    end,
+})
+
+VisualsTab:CreateToggle({
+    Section  = CamSection,
+    Title    = "Show Tracer",
+    Default  = false,
+    Callback = function(val)
+        State.ShowTracer = val
+        -- game-specific
+    end,
+})
+
+VisualsTab:CreateToggle({
+    Section  = CamSection,
+    Title    = "Third Person",
+    Default  = false,
+    Callback = function(val)
+        State.ThirdPerson = val
+        ApplyThirdPerson()
+    end,
+})
+
+VisualsTab:CreateToggle({
+    Section  = CamSection,
+    Title    = "Custom Camera",
+    Default  = false,
+    Callback = function(val)
+        State.CameraEnable = val
+        -- game-specific: custom camera angles
+    end,
+})
+
+VisualsTab:CreateToggle({
+    Section  = CamSection,
+    Title    = "Aspect Ratio Lock",
+    Default  = false,
+    Callback = function(val)
+        State.AspectRatio = val
+    end,
+})
+
+VisualsTab:CreateSlider({
+    Section  = CamSection,
+    Title    = "Aspect X",
+    Min      = 1,
+    Max      = 32,
+    Default  = 16,
+    Callback = function(val)
+        State.AspectX = val
+    end,
+})
+
+VisualsTab:CreateSlider({
+    Section  = CamSection,
+    Title    = "Aspect Y",
+    Min      = 1,
+    Max      = 32,
+    Default  = 9,
+    Callback = function(val)
+        State.AspectY = val
+    end,
+})
+
+-- ── GUN MATERIAL ────────────────────────────────────────────
+VisualsTab:CreateDivider({ Section = CamSection })
+local GunSection = VisualsTab:CreateSection({ Title = "── GUN MATERIAL ──" })
+
+VisualsTab:CreateToggle({
+    Section  = GunSection,
+    Title    = "Gun Material Override",
+    Default  = false,
+    Callback = function(val)
+        State.GunMaterial = val
+        -- game-specific: iterate tools and set material
+    end,
+})
+
+VisualsTab:CreateColorPicker({
+    Section  = GunSection,
+    Title    = "Gun Material Color",
+    Default  = Color3.fromRGB(200, 200, 200),
+    Callback = function(val)
+        State.GunMatColor = val
+    end,
+})
+
+VisualsTab:CreateDropdown({
+    Section  = GunSection,
+    Title    = "Gun Material Type",
+    Options  = {
+        "SmoothPlastic", "Neon", "Metal", "Glass", "ForceField",
+        "Foil", "DiamondPlate", "Granite", "Marble", "Sand"
+    },
+    Default  = "SmoothPlastic",
+    Callback = function(val)
+        State.GunMatType = val
+    end,
+})
+
+-- ── WORLD ───────────────────────────────────────────────────
+VisualsTab:CreateDivider({ Section = GunSection })
+local WorldSection = VisualsTab:CreateSection({ Title = "── WORLD ──" })
+
+VisualsTab:CreateToggle({
+    Section  = WorldSection,
+    Title    = "World Lighting Mode",
+    Default  = false,
+    Callback = function(val)
+        State.WorldLighting = val
+        ApplyWorldLighting()
+    end,
+})
+
+VisualsTab:CreateDropdown({
+    Section  = WorldSection,
+    Title    = "Lighting Technology",
+    Options  = { "Compatibility", "ShadowMap", "Future", "Voxel" },
+    Default  = "Compatibility",
+    Callback = function(val)
+        State.WorldLightTech = val
+        if State.WorldLighting then ApplyWorldLighting() end
+    end,
+})
+
+VisualsTab:CreateToggle({
+    Section  = WorldSection,
+    Title    = "World Time Override",
+    Default  = false,
+    Callback = function(val)
+        State.WorldTime = val
+        if val then Lighting.ClockTime = State.WorldTimeVal end
+    end,
+})
+
+VisualsTab:CreateSlider({
+    Section  = WorldSection,
+    Title    = "World Time (Clock Hour)",
+    Min      = 0,
+    Max      = 24,
+    Default  = 14,
+    Decimals = 1,
+    Callback = function(val)
+        State.WorldTimeVal = val
+        if State.WorldTime then Lighting.ClockTime = val end
+    end,
+})
+
+VisualsTab:CreateToggle({
+    Section  = WorldSection,
+    Title    = "World Atmosphere",
+    Default  = false,
+    Callback = function(val)
+        State.WorldAtmo = val
+        ApplyWorldLighting()
+    end,
+})
+
+VisualsTab:CreateColorPicker({
+    Section  = WorldSection,
+    Title    = "Atmosphere Color",
+    Default  = Color3.fromRGB(255, 255, 255),
+    Callback = function(val)
+        State.AtmoColor1 = val
+        ApplyWorldLighting()
+    end,
+})
+
+VisualsTab:CreateColorPicker({
+    Section  = WorldSection,
+    Title    = "Atmosphere Decay",
+    Default  = Color3.fromRGB(255, 255, 255),
+    Callback = function(val)
+        State.AtmoColor2 = val
+        ApplyWorldLighting()
+    end,
+})
+
+VisualsTab:CreateSlider({
+    Section  = WorldSection,
+    Title    = "Atmosphere Haze",
+    Min      = 0,
+    Max      = 10,
+    Default  = 0,
+    Decimals = 1,
+    Callback = function(val)
+        State.AtmoHaze = val
+        ApplyWorldLighting()
+    end,
+})
+
+VisualsTab:CreateSlider({
+    Section  = WorldSection,
+    Title    = "Atmosphere Glare",
+    Min      = 0,
+    Max      = 1,
+    Default  = 0,
+    Decimals = 2,
+    Callback = function(val)
+        State.AtmoGlare = val
+        ApplyWorldLighting()
+    end,
+})
+
+VisualsTab:CreateSlider({
+    Section  = WorldSection,
+    Title    = "Atmosphere Offset",
+    Min      = -1,
+    Max      = 1,
+    Default  = 0,
+    Decimals = 2,
+    Callback = function(val)
+        State.AtmoOffset = val
+        ApplyWorldLighting()
+    end,
+})
+
+VisualsTab:CreateSlider({
+    Section  = WorldSection,
+    Title    = "Atmosphere Density",
+    Min      = 0,
+    Max      = 1,
+    Default  = 0.35,
+    Decimals = 2,
+    Callback = function(val)
+        State.AtmoDensity = val
+        ApplyWorldLighting()
+    end,
+})
+
+VisualsTab:CreateToggle({
+    Section  = WorldSection,
+    Title    = "World Textures Override",
+    Default  = false,
+    Callback = function(val)
+        State.WorldTextures = val
+        -- game-specific: texture overrides require custom meshes
+    end,
+})
+
+VisualsTab:CreateDropdown({
+    Section  = WorldSection,
+    Title    = "World Texture Type",
+    Options  = { "Default", "Flat", "Dark", "Neon", "Retro" },
+    Default  = "Default",
+    Callback = function(val)
+        State.WorldTexType = val
+    end,
+})
+
+VisualsTab:CreateToggle({
+    Section  = WorldSection,
+    Title    = "World Ambient Override",
+    Default  = false,
+    Callback = function(val)
+        State.WorldAmbient = val
+        ApplyWorldLighting()
+    end,
+})
+
+VisualsTab:CreateColorPicker({
+    Section  = WorldSection,
+    Title    = "Ambient Color",
+    Default  = Color3.fromRGB(128, 128, 128),
+    Callback = function(val)
+        State.AmbientColor1 = val
+        ApplyWorldLighting()
+    end,
+})
+
+VisualsTab:CreateColorPicker({
+    Section  = WorldSection,
+    Title    = "Outdoor Ambient Color",
+    Default  = Color3.fromRGB(128, 128, 128),
+    Callback = function(val)
+        State.AmbientColor2 = val
+        ApplyWorldLighting()
+    end,
+})
+
+VisualsTab:CreateToggle({
+    Section  = WorldSection,
+    Title    = "World Weather",
+    Default  = false,
+    Callback = function(val)
+        State.WorldWeather = val
+        -- game-specific: particle emitter for weather
+    end,
+})
+
+VisualsTab:CreateColorPicker({
+    Section  = WorldSection,
+    Title    = "Weather Color",
+    Default  = Color3.fromRGB(200, 220, 255),
+    Callback = function(val)
+        State.WeatherColor = val
+    end,
+})
+
+VisualsTab:CreateDropdown({
+    Section  = WorldSection,
+    Title    = "Weather Type",
+    Options  = { "Rain", "Snow", "Fog", "Storm", "Sandstorm" },
+    Default  = "Rain",
+    Callback = function(val)
+        State.WeatherType = val
+    end,
+})
+
+VisualsTab:CreateSlider({
+    Section  = WorldSection,
+    Title    = "Weather Rate",
+    Min      = 1,
+    Max      = 100,
+    Default  = 20,
+    Callback = function(val)
+        State.WeatherRate = val
+    end,
+})
+
+VisualsTab:CreateToggle({
+    Section  = WorldSection,
+    Title    = "World Skybox Override",
+    Default  = false,
+    Callback = function(val)
+        State.WorldSkybox = val
+        -- game-specific: load custom skybox texture IDs
+    end,
+})
+
+VisualsTab:CreateDropdown({
+    Section  = WorldSection,
+    Title    = "Skybox Type",
+    Options  = { "Default", "Space", "Dark", "Sunset", "Cloudy" },
+    Default  = "Default",
+    Callback = function(val)
+        State.SkyboxType = val
+    end,
+})
+
+-- ── POST FX ─────────────────────────────────────────────────
+VisualsTab:CreateDivider({ Section = WorldSection })
+local PostSection = VisualsTab:CreateSection({ Title = "── POST PROCESSING ──" })
+
+VisualsTab:CreateToggle({
+    Section  = PostSection,
+    Title    = "Bloom",
+    Default  = false,
+    Callback = function(val)
+        State.BloomEnable = val
+        ApplyPostFX()
+    end,
+})
+
+VisualsTab:CreateSlider({
+    Section  = PostSection,
+    Title    = "Bloom Intensity",
+    Min      = 0,
+    Max      = 5,
+    Default  = 0.5,
+    Decimals = 2,
+    Callback = function(val)
+        State.BloomIntensity = val
+        if State.BloomEnable then ApplyPostFX() end
+    end,
+})
+
+VisualsTab:CreateSlider({
+    Section  = PostSection,
+    Title    = "Bloom Size",
+    Min      = 1,
+    Max      = 56,
+    Default  = 24,
+    Callback = function(val)
+        State.BloomSize = val
+        if State.BloomEnable then ApplyPostFX() end
+    end,
+})
+
+VisualsTab:CreateSlider({
+    Section  = PostSection,
+    Title    = "Bloom Threshold",
+    Min      = 0,
+    Max      = 2,
+    Default  = 1,
+    Decimals = 2,
+    Callback = function(val)
+        State.BloomThreshold = val
+        if State.BloomEnable then ApplyPostFX() end
+    end,
+})
+
+VisualsTab:CreateToggle({
+    Section  = PostSection,
+    Title    = "Color Correction",
+    Default  = false,
+    Callback = function(val)
+        State.ColorCorrEnable = val
+        ApplyPostFX()
+    end,
+})
+
+VisualsTab:CreateSlider({
+    Section  = PostSection,
+    Title    = "CC Brightness",
+    Min      = -1,
+    Max      = 1,
+    Default  = 0,
+    Decimals = 2,
+    Callback = function(val)
+        State.CCBrightness = val
+        if State.ColorCorrEnable then ApplyPostFX() end
+    end,
+})
+
+VisualsTab:CreateSlider({
+    Section  = PostSection,
+    Title    = "CC Contrast",
+    Min      = -1,
+    Max      = 1,
+    Default  = 0,
+    Decimals = 2,
+    Callback = function(val)
+        State.CCContrast = val
+        if State.ColorCorrEnable then ApplyPostFX() end
+    end,
+})
+
+VisualsTab:CreateSlider({
+    Section  = PostSection,
+    Title    = "CC Saturation",
+    Min      = -1,
+    Max      = 1,
+    Default  = 0,
+    Decimals = 2,
+    Callback = function(val)
+        State.CCSaturation = val
+        if State.ColorCorrEnable then ApplyPostFX() end
+    end,
+})
+
+VisualsTab:CreateToggle({
+    Section  = PostSection,
+    Title    = "Sun Rays",
+    Default  = false,
+    Callback = function(val)
+        State.SunRaysEnable = val
+        ApplyPostFX()
+    end,
+})
+
+VisualsTab:CreateToggle({
+    Section  = PostSection,
+    Title    = "No Post FX",
+    Default  = false,
+    Callback = function(val)
+        State.NoPostFX = val
+        ApplyNoPostFX()
+    end,
+})
+
+VisualsTab:CreateToggle({
+    Section  = PostSection,
+    Title    = "No Shadows",
+    Default  = false,
+    Callback = function(val)
+        State.NoShadows = val
+        Lighting.GlobalShadows = not val
+    end,
+})
+
+VisualsTab:CreateToggle({
+    Section  = PostSection,
+    Title    = "No Skybox",
+    Default  = false,
+    Callback = function(val)
+        State.NoSkybox = val
+        local sky = Lighting:FindFirstChildOfClass("Sky")
+        if sky then sky.Parent = val and ReplicatedStorage or Lighting end
+    end,
+})
+
+-- ══════════════════════════════════════════════════════════════
+--  ███████╗██╗  ██╗██╗███╗   ██╗███████╗
+--  ██╔════╝██║ ██╔╝██║████╗  ██║██╔════╝
+--  ███████╗█████╔╝ ██║██╔██╗ ██║███████╗
+--  ╚════██║██╔═██╗ ██║██║╚██╗██║╚════██║
+--  ███████║██║  ██╗██║██║ ╚████║███████║
+--  ╚══════╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝╚══════╝
+-- ══════════════════════════════════════════════════════════════
+local SkinsTab = Window:CreateTab({ Title = "Skins", Icon = "shirt" })
+
+-- ── WEAPON SKINS ────────────────────────────────────────────
+local SkinSection = SkinsTab:CreateSection({ Title = "── WEAPON SKINS ──" })
+
+local SKIN_OPTIONS = { "Default", "Gold", "Chrome", "Carbon", "Dragon", "Fade", "Slaughter" }
+
+SkinsTab:CreateToggle({
+    Section  = SkinSection,
+    Title    = "Skin Changer",
+    Default  = false,
+    Callback = function(val)
+        State.SkinChanger = val
+        -- game-specific: hook tool render
+    end,
+})
+
+SkinsTab:CreateDropdown({
+    Section  = SkinSection,
+    Title    = "Double Barrel Skin",
+    Options  = SKIN_OPTIONS,
+    Default  = "Default",
+    Callback = function(val)
+        State.DBSkin = val
+        -- game-specific
+    end,
+})
+
+SkinsTab:CreateDropdown({
+    Section  = SkinSection,
+    Title    = "Revolver Skin",
+    Options  = SKIN_OPTIONS,
+    Default  = "Default",
+    Callback = function(val)
+        State.RevolverSkin = val
+    end,
+})
+
+SkinsTab:CreateDropdown({
+    Section  = SkinSection,
+    Title    = "Tactical Shotgun Skin",
+    Options  = SKIN_OPTIONS,
+    Default  = "Default",
+    Callback = function(val)
+        State.TacShotgunSkin = val
+    end,
+})
+
+SkinsTab:CreateDropdown({
+    Section  = SkinSection,
+    Title    = "SMG Skin",
+    Options  = SKIN_OPTIONS,
+    Default  = "Default",
+    Callback = function(val)
+        State.SMGSkin = val
+    end,
+})
+
+SkinsTab:CreateDropdown({
+    Section  = SkinSection,
+    Title    = "Shotgun Skin",
+    Options  = SKIN_OPTIONS,
+    Default  = "Default",
+    Callback = function(val)
+        State.ShotgunSkin = val
+    end,
+})
+
+SkinsTab:CreateDropdown({
+    Section  = SkinSection,
+    Title    = "Knife Skin",
+    Options  = SKIN_OPTIONS,
+    Default  = "Default",
+    Callback = function(val)
+        State.KnifeSkin = val
+    end,
+})
+
+-- ── BULLET CHANGER ──────────────────────────────────────────
+SkinsTab:CreateDivider({ Section = SkinSection })
+local BulletChangerSection = SkinsTab:CreateSection({ Title = "── BULLET CHANGER ──" })
+
+SkinsTab:CreateToggle({
+    Section  = BulletChangerSection,
+    Title    = "Bullet Changer",
+    Default  = false,
+    Callback = function(val)
+        State.BulletChanger = val
+        -- game-specific
+    end,
+})
+
+SkinsTab:CreateDropdown({
+    Section  = BulletChangerSection,
+    Title    = "Bullet Texture",
+    Options  = { "Default", "Sphere", "Star", "Heart", "Diamond", "Neon Ball" },
+    Default  = "Default",
+    Callback = function(val)
+        State.BulletTexture = val
+    end,
+})
+
+-- ── CHARACTER MODS ──────────────────────────────────────────
+SkinsTab:CreateDivider({ Section = BulletChangerSection })
+local CharSection = SkinsTab:CreateSection({ Title = "── CHARACTER MODS ──" })
+
+SkinsTab:CreateToggle({
+    Section  = CharSection,
+    Title    = "Headless",
+    Default  = false,
+    Callback = function(val)
+        State.Headless = val
+        ApplyHeadless()
+    end,
+})
+
+SkinsTab:CreateToggle({
+    Section  = CharSection,
+    Title    = "Korblox",
+    Default  = false,
+    Callback = function(val)
+        State.Korblox = val
+        ApplyKorblox()
+    end,
+})
+
+SkinsTab:CreateToggle({
+    Section  = CharSection,
+    Title    = "Chams (Always Visible)",
+    Default  = false,
+    Callback = function(val)
+        State.Chams = val
+    end,
+})
+
+SkinsTab:CreateColorPicker({
+    Section  = CharSection,
+    Title    = "Chams Color",
+    Default  = Color3.fromRGB(255, 0, 255),
+    Callback = function(val)
+        State.ChamsColor = val
+    end,
+})
+
+SkinsTab:CreateToggle({
+    Section  = CharSection,
+    Title    = "Remove Accessories",
+    Default  = false,
+    Callback = function(val)
+        State.RemoveAccs = val
+        ApplyRemoveAccs()
+    end,
+})
+
+SkinsTab:CreateInput({
+    Section  = CharSection,
+    Title    = "Custom Accessory ID",
+    Default  = "",
+    Callback = function(val)
+        State.CustomAcc = val
+        -- game-specific: load accessory from catalog
+    end,
+})
+
+-- ── EMOTES / ANIMATIONS ─────────────────────────────────────
+SkinsTab:CreateDivider({ Section = CharSection })
+local EmoteSection = SkinsTab:CreateSection({ Title = "── EMOTES & ANIMATIONS ──" })
+
+SkinsTab:CreateToggle({
+    Section  = EmoteSection,
+    Title    = "Enable Dance",
+    Default  = false,
+    Callback = function(val)
+        State.EnableDance = val
+        -- game-specific: load and play emote animation
+    end,
+})
+
+SkinsTab:CreateDropdown({
+    Section  = EmoteSection,
+    Title    = "Select Dance",
+    Options  = {
+        "Renegade", "Griddy", "Orange Justice", "Gangnam Style",
+        "Dab", "Floss", "Sway", "Wiggle"
+    },
+    Default  = "Renegade",
+    Callback = function(val)
+        State.DanceType = val
+    end,
+})
+
+SkinsTab:CreateSlider({
+    Section  = EmoteSection,
+    Title    = "Emote Speed",
+    Min      = 0.1,
+    Max      = 5,
+    Default  = 1,
+    Decimals = 1,
+    Callback = function(val)
+        State.EmoteSpeed = val
+        -- game-specific: adjust animation speed
+    end,
+})
+
+SkinsTab:CreateToggle({
+    Section  = EmoteSection,
+    Title    = "Lag Animations",
+    Default  = false,
+    Callback = function(val)
+        State.LagAnimations = val
+        -- game-specific
+    end,
+})
+
+SkinsTab:CreateSlider({
+    Section  = EmoteSection,
+    Title    = "Lag Intensity",
+    Min      = 1,
+    Max      = 10,
+    Default  = 1,
+    Callback = function(val)
+        State.LagIntensity = val
+    end,
+})
+
+-- ── COSMETICS ───────────────────────────────────────────────
+SkinsTab:CreateDivider({ Section = EmoteSection })
+local CosmeticsSection = SkinsTab:CreateSection({ Title = "── COSMETICS ──" })
+
+SkinsTab:CreateToggle({
+    Section  = CosmeticsSection,
+    Title    = "Unlock All Cosmetics",
+    Default  = false,
+    Callback = function(val)
+        State.UnlockAllCosm = val
+        -- game-specific: bypass cosmetic checks
+    end,
+})
+
+SkinsTab:CreateToggle({
+    Section  = CosmeticsSection,
+    Title    = "Always Favorite Cosmetics",
+    Default  = false,
+    Callback = function(val)
+        State.AlwaysFavCosm = val
+        -- game-specific
+    end,
+})
+
+SkinsTab:CreateToggle({
+    Section  = CosmeticsSection,
+    Title    = "Favorites Only",
+    Default  = false,
+    Callback = function(val)
+        State.FavoritesOnly = val
+        -- game-specific
+    end,
+})
+
+-- ── SPOOFING ────────────────────────────────────────────────
+SkinsTab:CreateDivider({ Section = CosmeticsSection })
+local SpoofSection = SkinsTab:CreateSection({ Title = "── SPOOFING ──" })
+
+SkinsTab:CreateToggle({
+    Section  = SpoofSection,
+    Title    = "Name Spoofer",
+    Default  = false,
+    Callback = function(val)
+        State.NameSpoofer = val
+        ApplyNameSpoofer()
+    end,
+})
+
+SkinsTab:CreateInput({
+    Section  = SpoofSection,
+    Title    = "Spoofed Name",
+    Default  = "",
+    Callback = function(val)
+        State.SpoofedName = val
+        if State.NameSpoofer then ApplyNameSpoofer() end
+    end,
+})
+
+SkinsTab:CreateToggle({
+    Section  = SpoofSection,
+    Title    = "Device Spoof",
+    Default  = false,
+    Callback = function(val)
+        State.DeviceSpoof = val
+        -- game-specific: spoof device type reports
+    end,
+})
+
+SkinsTab:CreateDropdown({
+    Section  = SpoofSection,
+    Title    = "Device Type",
+    Options  = { "Mobile", "Console", "PC" },
+    Default  = "Mobile",
+    Callback = function(val)
+        State.DeviceType = val
+    end,
+})
+
+SkinsTab:CreateDropdown({
+    Section  = SpoofSection,
+    Title    = "Avatar / Char Spoof",
+    Options  = { "None", "Noob", "Guest", "R6", "R15 Default", "Custom ID" },
+    Default  = "None",
+    Callback = function(val)
+        State.AvatarSpoof = val
+        -- game-specific: swap character appearance
+    end,
+})
+
+-- ══════════════════════════════════════════════════════════════
+--  ███╗   ███╗██╗███████╗ ██████╗
+--  ████╗ ████║██║██╔════╝██╔════╝
+--  ██╔████╔██║██║███████╗██║
+--  ██║╚██╔╝██║██║╚════██║██║
+--  ██║ ╚═╝ ██║██║███████║╚██████╗
+--  ╚═╝     ╚═╝╚═╝╚══════╝ ╚═════╝
+-- ══════════════════════════════════════════════════════════════
+local MiscTab = Window:CreateTab({ Title = "Misc", Icon = "settings" })
+
+-- ────────────────────────────────────────────────────────────
+--  PLAYER
+-- ────────────────────────────────────────────────────────────
+local PlayerSection = MiscTab:CreateSection({ Title = "── PLAYER ──" })
+
+MiscTab:CreateToggle({
+    Section  = PlayerSection,
+    Title    = "Godmode",
+    Default  = false,
+    Keybind  = { Title = "Godmode Key", Default = Enum.KeyCode.Unknown },
+    Callback = function(val)
+        State.Godmode = val
+        ApplyGodmode()
+    end,
+})
+
+MiscTab:CreateToggle({
+    Section  = PlayerSection,
+    Title    = "Walk Speed",
+    Default  = false,
+    Keybind  = { Title = "Speed Key", Default = Enum.KeyCode.Unknown },
+    Callback = function(val)
+        State.WalkSpeedEnable = val
+        ApplyWalkSpeed()
+    end,
+})
+
+MiscTab:CreateSlider({
+    Section  = PlayerSection,
+    Title    = "Walk Speed Value",
+    Min      = 0,
+    Max      = 500,
+    Default  = 16,
+    Callback = function(val)
+        State.WalkSpeedValue = val
+        if State.WalkSpeedEnable then ApplyWalkSpeed() end
+    end,
+})
+
+MiscTab:CreateToggle({
+    Section  = PlayerSection,
+    Title    = "Jump Power",
+    Default  = false,
+    Keybind  = { Title = "Jump Key", Default = Enum.KeyCode.Unknown },
+    Callback = function(val)
+        State.JumpPowerEnable = val
+        ApplyJumpPower()
+    end,
+})
+
+MiscTab:CreateSlider({
+    Section  = PlayerSection,
+    Title    = "Jump Power Value",
+    Min      = 0,
+    Max      = 300,
+    Default  = 50,
+    Callback = function(val)
+        State.JumpPowerValue = val
+        if State.JumpPowerEnable then ApplyJumpPower() end
+    end,
+})
+
+MiscTab:CreateToggle({
+    Section  = PlayerSection,
+    Title    = "Flight",
+    Default  = false,
+    Keybind  = { Title = "Flight Key", Default = Enum.KeyCode.Unknown },
+    Callback = function(val)
+        State.FlightEnable = val
+        if val then
+            EnableFlight()
+        else
+            DisableFlight()
+        end
+    end,
+})
+
+MiscTab:CreateSlider({
+    Section  = PlayerSection,
+    Title    = "Flight Speed",
+    Min      = 1,
+    Max      = 500,
+    Default  = 50,
+    Callback = function(val)
+        State.FlightSpeed = val
+    end,
+})
+
+MiscTab:CreateToggle({
+    Section  = PlayerSection,
+    Title    = "CFrame Speed",
+    Default  = false,
+    Keybind  = { Title = "CFrame Key", Default = Enum.KeyCode.Unknown },
+    Callback = function(val)
+        State.CFrameSpeedEnable = val
+        -- game-specific: teleport via CFrame each frame
+    end,
+})
+
+MiscTab:CreateSlider({
+    Section  = PlayerSection,
+    Title    = "CFrame Speed Value",
+    Min      = 1,
+    Max      = 100,
+    Default  = 1,
+    Callback = function(val)
+        State.CFrameSpeedValue = val
+    end,
+})
+
+MiscTab:CreateToggle({
+    Section  = PlayerSection,
+    Title    = "Noclip",
+    Default  = false,
+    Callback = function(val)
+        State.Noclip = val
+        if val then
+            StartNoclip()
+        else
+            Disconnect("Noclip")
+        end
+    end,
+})
+
+MiscTab:CreateToggle({
+    Section  = PlayerSection,
+    Title    = "Anti Void",
+    Default  = false,
+    Callback = function(val)
+        State.AntiVoid = val
+    end,
+})
+
+MiscTab:CreateToggle({
+    Section  = PlayerSection,
+    Title    = "Anti AFK",
+    Default  = false,
+    Callback = function(val)
+        State.AntiAFK = val
+    end,
+})
+
+MiscTab:CreateToggle({
+    Section  = PlayerSection,
+    Title    = "Anti Rejoin",
+    Default  = false,
+    Callback = function(val)
+        State.AntiRejoin = val
+        -- game-specific: block rejoin teleports
+    end,
+})
+
+MiscTab:CreateSlider({
+    Section  = PlayerSection,
+    Title    = "Gravity",
+    Min      = 0,
+    Max      = 500,
+    Default  = 196,
+    Callback = function(val)
+        State.Gravity = val
+        ApplyGravity(val)
+    end,
+})
+
+MiscTab:CreateToggle({
+    Section  = PlayerSection,
+    Title    = "Hitbox Expand",
+    Default  = false,
+    Keybind  = { Title = "Hitbox Key", Default = Enum.KeyCode.Unknown },
+    Callback = function(val)
+        State.HitboxExpand = val
+        ApplyHitboxExpand()
+    end,
+})
+
+MiscTab:CreateSlider({
+    Section  = PlayerSection,
+    Title    = "Hitbox Size",
+    Min      = 1,
+    Max      = 50,
+    Default  = 5,
+    Callback = function(val)
+        State.HitboxSize = val
+        if State.HitboxExpand then ApplyHitboxExpand() end
+    end,
+})
+
+MiscTab:CreateToggle({
+    Section  = PlayerSection,
+    Title    = "Hitbox Visualize",
+    Default  = false,
+    Callback = function(val)
+        State.HitboxVis = val
+        if State.HitboxExpand then ApplyHitboxExpand() end
+    end,
+})
+
+MiscTab:CreateToggle({
+    Section  = PlayerSection,
+    Title    = "Force Field",
+    Default  = false,
+    Callback = function(val)
+        State.ForceField = val
+        ApplyForceField()
+    end,
+})
+
+-- ────────────────────────────────────────────────────────────
+--  AUTOMATION
+-- ────────────────────────────────────────────────────────────
+MiscTab:CreateDivider({ Section = PlayerSection })
+local AutoSection = MiscTab:CreateSection({ Title = "── AUTOMATION ──" })
+
+MiscTab:CreateToggle({
+    Section  = AutoSection,
+    Title    = "Auto Queue",
+    Default  = false,
+    Callback = function(val)
+        State.AutoQueue = val
+        -- game-specific: auto-click ready/queue buttons
+    end,
+})
+
+MiscTab:CreateDropdown({
+    Section  = AutoSection,
+    Title    = "Auto Queue Mode",
+    Options  = { "Normal", "Ranked", "Unranked", "Custom" },
+    Default  = "Normal",
+    Callback = function(val)
+        State.AutoQueueMode = val
+    end,
+})
+
+MiscTab:CreateToggle({
+    Section  = AutoSection,
+    Title    = "Auto Vote Map",
+    Default  = false,
+    Callback = function(val)
+        State.AutoVoteMap = val
+        -- game-specific: auto-click map vote
+    end,
+})
+
+MiscTab:CreateDropdown({
+    Section  = AutoSection,
+    Title    = "Vote Map",
+    Options  = { "Any", "Dust2", "Inferno", "Mirage", "Nuke", "Cache", "Train" },
+    Default  = "Any",
+    Callback = function(val)
+        State.AutoVoteMapName = val
+    end,
+})
+
+MiscTab:CreateToggle({
+    Section  = AutoSection,
+    Title    = "Auto Reload",
+    Default  = false,
+    Callback = function(val)
+        State.AutoReloadAuto = val
+        -- game-specific
+    end,
+})
+
+MiscTab:CreateToggle({
+    Section  = AutoSection,
+    Title    = "Auto Food",
+    Default  = false,
+    Callback = function(val)
+        State.AutoFood = val
+        -- game-specific
+    end,
+})
+
+MiscTab:CreateToggle({
+    Section  = AutoSection,
+    Title    = "Auto Loadout",
+    Default  = false,
+    Callback = function(val)
+        State.AutoLoadout = val
+        -- game-specific: auto-select loadout on spawn
+    end,
+})
+
+local WEAPON_OPTIONS = { "Default", "Shotgun", "SMG", "Rifle", "Sniper", "Pistol", "Revolver" }
+
+MiscTab:CreateDropdown({
+    Section  = AutoSection,
+    Title    = "Primary Weapon",
+    Options  = WEAPON_OPTIONS,
+    Default  = "Default",
+    Callback = function(val)
+        State.AutoPrimary = val
+    end,
+})
+
+MiscTab:CreateDropdown({
+    Section  = AutoSection,
+    Title    = "Secondary Weapon",
+    Options  = WEAPON_OPTIONS,
+    Default  = "Default",
+    Callback = function(val)
+        State.AutoSecondary = val
+    end,
+})
+
+MiscTab:CreateDropdown({
+    Section  = AutoSection,
+    Title    = "Melee Weapon",
+    Options  = { "Default", "Knife", "Katana", "Bat", "Sword" },
+    Default  = "Default",
+    Callback = function(val)
+        State.AutoMelee = val
+    end,
+})
+
+MiscTab:CreateDropdown({
+    Section  = AutoSection,
+    Title    = "Utility",
+    Options  = { "Default", "Grenade", "Flash", "Smoke", "Molotov" },
+    Default  = "Default",
+    Callback = function(val)
+        State.AutoUtility = val
+    end,
+})
+
+MiscTab:CreateDivider({ Section = AutoSection })
+MiscTab:CreateLabel({ Section = AutoSection, Title = "Shop Automation" })
+
+MiscTab:CreateToggle({
+    Section  = AutoSection,
+    Title    = "Shop Auto Ammo",
+    Default  = false,
+    Callback = function(val)
+        State.ShopAutoAmmo = val
+        -- game-specific
+    end,
+})
+
+MiscTab:CreateToggle({
+    Section  = AutoSection,
+    Title    = "Shop Auto Gun",
+    Default  = false,
+    Callback = function(val)
+        State.ShopAutoGun = val
+        -- game-specific
+    end,
+})
+
+MiscTab:CreateToggle({
+    Section  = AutoSection,
+    Title    = "Shop Auto Armor",
+    Default  = false,
+    Callback = function(val)
+        State.ShopAutoArmor = val
+        -- game-specific
+    end,
+})
+
+MiscTab:CreateToggle({
+    Section  = AutoSection,
+    Title    = "Shop Auto Fire Armor",
+    Default  = false,
+    Callback = function(val)
+        State.ShopAutoFireArmor = val
+        -- game-specific
+    end,
+})
+
+MiscTab:CreateDivider({ Section = AutoSection })
+MiscTab:CreateLabel({ Section = AutoSection, Title = "Cash Aura" })
+
+MiscTab:CreateToggle({
+    Section  = AutoSection,
+    Title    = "Cash Aura",
+    Default  = false,
+    Callback = function(val)
+        State.CashAura = val
+        -- game-specific: collect nearby cash objects
+    end,
+})
+
+MiscTab:CreateSlider({
+    Section  = AutoSection,
+    Title    = "Cash Aura Range",
+    Min      = 1,
+    Max      = 200,
+    Default  = 20,
+    Callback = function(val)
+        State.CashAuraRange = val
+    end,
+})
+
+MiscTab:CreateSlider({
+    Section  = AutoSection,
+    Title    = "Cash Aura Cooldown",
+    Min      = 0,
+    Max      = 10,
+    Default  = 1,
+    Decimals = 1,
+    Callback = function(val)
+        State.CashAuraCooldown = val
+    end,
+})
+
+MiscTab:CreateDivider({ Section = AutoSection })
+MiscTab:CreateLabel({ Section = AutoSection, Title = "Chat" })
+
+MiscTab:CreateToggle({
+    Section  = AutoSection,
+    Title    = "Chat Spam",
+    Default  = false,
+    Callback = function(val)
+        State.ChatSpam = val
+        if val then
+            Disconnect("ChatSpam")
+            local elapsed = 0
+            loops["ChatSpam"] = RunService.Heartbeat:Connect(function(dt)
+                if not State.ChatSpam then Disconnect("ChatSpam") return end
+                elapsed = elapsed + dt
+                if elapsed >= State.ChatSpamDelay then
+                    elapsed = 0
+                    game:GetService("ReplicatedStorage")
+                        :FindFirstChild("DefaultChatSystemChatEvents")
+                        and game:GetService("ReplicatedStorage")
+                            .DefaultChatSystemChatEvents
+                            .SayMessageRequest
+                            :FireServer(State.ChatSpamMsg, "All")
+                end
+            end)
+        else
+            Disconnect("ChatSpam")
+        end
+    end,
+})
+
+MiscTab:CreateInput({
+    Section  = AutoSection,
+    Title    = "Chat Spam Message",
+    Default  = "Zenith",
+    Callback = function(val)
+        State.ChatSpamMsg = val
+    end,
+})
+
+MiscTab:CreateSlider({
+    Section  = AutoSection,
+    Title    = "Chat Spam Delay (s)",
+    Min      = 0.1,
+    Max      = 10,
+    Default  = 1,
+    Decimals = 1,
+    Callback = function(val)
+        State.ChatSpamDelay = val
+    end,
+})
+
+MiscTab:CreateToggle({
+    Section  = AutoSection,
+    Title    = "Chat Spy",
+    Default  = false,
+    Callback = function(val)
+        State.ChatSpy = val
+        if val then
+            -- Listen for all player chat in the game
+            Players.PlayerAdded:Connect(function(p)
+                p.Chatted:Connect(function(msg)
+                    if State.ChatSpy then
+                        print("[Zenith ChatSpy] " .. p.Name .. ": " .. msg)
+                    end
+                end)
+            end)
+            for _, p in ipairs(Players:GetPlayers()) do
+                p.Chatted:Connect(function(msg)
+                    if State.ChatSpy then
+                        print("[Zenith ChatSpy] " .. p.Name .. ": " .. msg)
+                    end
+                end)
+            end
+        end
+    end,
+})
+
+MiscTab:CreateInput({
+    Section  = AutoSection,
+    Title    = "Chat Say",
+    Default  = "",
+    Callback = function(val)
+        if val and val ~= "" then
+            game:GetService("ReplicatedStorage")
+                :FindFirstChild("DefaultChatSystemChatEvents")
+                and game:GetService("ReplicatedStorage")
+                    .DefaultChatSystemChatEvents
+                    .SayMessageRequest
+                    :FireServer(val, "All")
+        end
+    end,
+})
+
+-- ────────────────────────────────────────────────────────────
+--  MOVEMENT
+-- ────────────────────────────────────────────────────────────
+MiscTab:CreateDivider({ Section = AutoSection })
+local MovSection = MiscTab:CreateSection({ Title = "── MOVEMENT ──" })
+
+MiscTab:CreateDropdown({
+    Section  = MovSection,
+    Title    = "Strafe Mode",
+    Options  = { "Orbit", "Random", "Void Shoot" },
+    Default  = "Orbit",
+    Callback = function(val)
+        State.MovStrafeMode = val
+    end,
+})
+
+MiscTab:CreateSlider({
+    Section  = MovSection,
+    Title    = "Strafe Speed",
+    Min      = 1,
+    Max      = 100,
+    Default  = 10,
+    Callback = function(val)
+        State.MovStrafeSpeed = val
+    end,
+})
+
+MiscTab:CreateSlider({
+    Section  = MovSection,
+    Title    = "Strafe Distance",
+    Min      = 1,
+    Max      = 100,
+    Default  = 10,
+    Callback = function(val)
+        State.MovStrafeDistance = val
+    end,
+})
+
+MiscTab:CreateSlider({
+    Section  = MovSection,
+    Title    = "Strafe Height",
+    Min      = -50,
+    Max      = 50,
+    Default  = 0,
+    Callback = function(val)
+        State.MovStrafeHeight = val
+    end,
+})
+
+-- ────────────────────────────────────────────────────────────
+--  FARM (AUTOFARM)
+-- ────────────────────────────────────────────────────────────
+MiscTab:CreateDivider({ Section = MovSection })
+local FarmSection = MiscTab:CreateSection({ Title = "── AUTOFARM ──" })
+
+MiscTab:CreateToggle({
+    Section  = FarmSection,
+    Title    = "Autofarm Enable",
+    Default  = false,
+    Callback = function(val)
+        State.AutofarmEnable = val
+        -- game-specific: loop kill / win detection
+    end,
+})
+
+MiscTab:CreateToggle({
+    Section  = FarmSection,
+    Title    = "Autofarm Anti AFK",
+    Default  = false,
+    Callback = function(val)
+        State.AutofarmAntiAFK = val
+    end,
+})
+
+MiscTab:CreateToggle({
+    Section  = FarmSection,
+    Title    = "Autofarm Aimlock Loser",
+    Default  = false,
+    Callback = function(val)
+        State.AutofarmAimlock = val
+        -- game-specific
+    end,
+})
+
+MiscTab:CreateInput({
+    Section  = FarmSection,
+    Title    = "Winner Username",
+    Default  = "",
+    Callback = function(val)
+        State.FarmWinner = val
+    end,
+})
+
+MiscTab:CreateInput({
+    Section  = FarmSection,
+    Title    = "Loser Username",
+    Default  = "",
+    Callback = function(val)
+        State.FarmLoser = val
+    end,
+})
+
+MiscTab:CreateDropdown({
+    Section  = FarmSection,
+    Title    = "Farm Weapon Mode",
+    Options  = { "Default", "Knife Only", "Gun Only", "Any" },
+    Default  = "Default",
+    Callback = function(val)
+        State.FarmWeaponMode = val
+    end,
+})
+
+MiscTab:CreateInput({
+    Section  = FarmSection,
+    Title    = "Staff Group ID",
+    Default  = "",
+    Callback = function(val)
+        State.FarmStaffGroupID = val
+    end,
+})
+
+MiscTab:CreateSlider({
+    Section  = FarmSection,
+    Title    = "ForceField Delay (s)",
+    Min      = 0,
+    Max      = 10,
+    Default  = 1,
+    Decimals = 1,
+    Callback = function(val)
+        State.FarmFFDelay = val
+    end,
+})
+
+MiscTab:CreateSlider({
+    Section  = FarmSection,
+    Title    = "SkyBox Height",
+    Min      = 100,
+    Max      = 5000,
+    Default  = 500,
+    Callback = function(val)
+        State.FarmSkyBoxHeight = val
+    end,
+})
+
+-- ══════════════════════════════════════════════════════════════
+--  PERFORMANCE TAB
+-- ══════════════════════════════════════════════════════════════
+local PerfTab = Window:CreateTab({ Title = "Performance", Icon = "zap" })
+local PerfSection = PerfTab:CreateSection({ Title = "── PERFORMANCE ──" })
+
+PerfTab:CreateParagraph({
+    Section = PerfSection,
+    Title   = "Performance Tweaks",
+    Content = "These settings optimize game performance. Some features require executor-level access.",
+})
+
+PerfTab:CreateToggle({
+    Section  = PerfSection,
+    Title    = "Unlock FPS",
+    Default  = false,
+    Callback = function(val)
+        State.UnlockFPS = val
+        ApplyUnlockFPS()
+    end,
+})
+
+PerfTab:CreateToggle({
+    Section  = PerfSection,
+    Title    = "No Post FX",
+    Default  = false,
+    Callback = function(val)
+        State.PerfNoPostFX = val
+        ApplyNoPostFX()
+    end,
+})
+
+PerfTab:CreateToggle({
+    Section  = PerfSection,
+    Title    = "No Shadows",
+    Default  = false,
+    Callback = function(val)
+        State.PerfNoShadows = val
+        Lighting.GlobalShadows = not val
+    end,
+})
+
+PerfTab:CreateToggle({
+    Section  = PerfSection,
+    Title    = "No Skybox",
+    Default  = false,
+    Callback = function(val)
+        State.PerfNoSkybox = val
+        local sky = Lighting:FindFirstChildOfClass("Sky")
+        if sky then sky.Parent = val and ReplicatedStorage or Lighting end
+    end,
+})
+
+-- ══════════════════════════════════════════════════════════════
+--  SETTINGS TAB
+-- ══════════════════════════════════════════════════════════════
+local SettingsTab = Window:CreateTab({ Title = "Settings", Icon = "sliders" })
+
+-- ── MENU ────────────────────────────────────────────────────
+local MenuSection = SettingsTab:CreateSection({ Title = "── MENU ──" })
+
+SettingsTab:CreateKeybind({
+    Section  = MenuSection,
+    Title    = "Menu Toggle Keybind",
+    Default  = Enum.KeyCode.RightShift,
+    Callback = function(val)
+        -- Airflow handles window toggling internally when keybind is set
+    end,
+})
+
+-- ── CONFIG ──────────────────────────────────────────────────
+SettingsTab:CreateDivider({ Section = MenuSection })
+local ConfigSection = SettingsTab:CreateSection({ Title = "── CONFIG ──" })
+
+SettingsTab:CreateConfigManager({
+    Section = ConfigSection,
+})
+
+-- ── ANTI-STAFF ──────────────────────────────────────────────
+SettingsTab:CreateDivider({ Section = ConfigSection })
+local AntiStaffSection = SettingsTab:CreateSection({ Title = "── ANTI-STAFF ──" })
+
+SettingsTab:CreateToggle({
+    Section  = AntiStaffSection,
+    Title    = "Anti Staff",
+    Default  = false,
+    Callback = function(val)
+        State.AntiStaff = val
+        if val then
+            -- Monitor for staff joining
+            Players.PlayerAdded:Connect(function(player)
+                if not State.AntiStaff then return end
+                -- game-specific: check if player is in staff group
+                -- local groupId = State.FarmStaffGroupID ~= "" and tonumber(State.FarmStaffGroupID) or 0
+                -- if groupId > 0 and player:IsInGroup(groupId) then
+                --     -- Execute anti-staff action
+                -- end
+            end)
+        end
+    end,
+})
+
+SettingsTab:CreateDropdown({
+    Section  = AntiStaffSection,
+    Title    = "Anti Staff Action",
+    Options  = { "Disconnect", "Rejoin", "Notify Only", "Unload" },
+    Default  = "Disconnect",
+    Callback = function(val)
+        State.AntiStaffAction = val
+    end,
+})
+
+-- ── SPOOFER ─────────────────────────────────────────────────
+SettingsTab:CreateDivider({ Section = AntiStaffSection })
+local SpooferSection = SettingsTab:CreateSection({ Title = "── SPOOFER ──" })
+
+SettingsTab:CreateToggle({
+    Section  = SpooferSection,
+    Title    = "Clear Avatar",
+    Default  = false,
+    Callback = function(val)
+        State.SpooferClearAvatar = val
+        if val then
+            local char = LocalPlayer.Character
+            if char then
+                for _, obj in ipairs(char:GetChildren()) do
+                    if obj:IsA("Accessory") then obj:Destroy() end
+                end
+            end
+        end
+    end,
+})
+
+SettingsTab:CreateToggle({
+    Section  = SpooferSection,
+    Title    = "Rename Instances",
+    Default  = false,
+    Callback = function(val)
+        State.SpooferRename = val
+        if val then
+            -- Rename local script instances to appear generic
+            for _, script in ipairs(LocalPlayer.PlayerScripts:GetDescendants()) do
+                if script:IsA("LocalScript") then
+                    script.Name = "LocalScript"
+                end
+            end
+        end
+    end,
+})
+
+SettingsTab:CreateToggle({
+    Section  = SpooferSection,
+    Title    = "Flush Body Colors",
+    Default  = false,
+    Callback = function(val)
+        State.SpooferFlushColors = val
+        if val then
+            local char = LocalPlayer.Character
+            if char then
+                local bc = char:FindFirstChildOfClass("BodyColors")
+                if bc then
+                    local white = BrickColor.White()
+                    bc.HeadColor   = white
+                    bc.TorsoColor  = white
+                    bc.LeftArmColor  = white
+                    bc.RightArmColor = white
+                    bc.LeftLegColor  = white
+                    bc.RightLegColor = white
+                end
+            end
+        end
+    end,
+})
+
+SettingsTab:CreateToggle({
+    Section  = SpooferSection,
+    Title    = "Deep Scan",
+    Default  = false,
+    Callback = function(val)
+        State.SpooferDeepScan = val
+        -- game-specific: scan and rename all suspicious instances
+    end,
+})
+
+-- ── UNLOAD ──────────────────────────────────────────────────
+SettingsTab:CreateDivider({ Section = SpooferSection })
+local UnloadSection = SettingsTab:CreateSection({ Title = "── UNLOAD ──" })
+
+SettingsTab:CreateButton({
+    Section  = UnloadSection,
+    Title    = "Unload Zenith",
+    Callback = function()
+        -- Clean up all loops and drawn objects
+        for name, conn in pairs(loops) do
+            conn:Disconnect()
+        end
+        fovCircle:Remove()
+        for _, line in ipairs(crosshairLines) do line:Remove() end
+        for _, h in pairs(espHighlights) do h:Destroy() end
+        for _, h in pairs(chamsHighlights) do h:Destroy() end
+        for _, h in pairs(hitboxHighlights) do h:Destroy() end
+        if selfParticle then selfParticle:Destroy() end
+        if flightBodyVelocity then flightBodyVelocity:Destroy() end
+        if flightBodyGyro then flightBodyGyro:Destroy() end
+
+        -- Restore defaults
+        local hum = GetHumanoid()
+        if hum then
+            hum.WalkSpeed  = 16
+            hum.JumpPower  = 50
+            hum.MaxHealth  = 100
+        end
+        Workspace.Gravity            = 196.2
+        Lighting.GlobalShadows       = true
+        Camera.FieldOfView           = 70
+
+        -- Destroy UI
+        Window:Destroy()
+    end,
+})
+
+-- ══════════════════════════════════════════════════════════════
+--  LOAD CONFIG & WELCOME NOTIFICATION
+-- ══════════════════════════════════════════════════════════════
+Window:LoadConfig()
+
+-- Welcome notification (displayed after UI is ready)
+task.delay(1, function()
+    Window:Notify({
+        Title    = "Zenith",
+        Content  = "Welcome, " .. LocalPlayer.DisplayName .. "! Zenith v1.0.0 loaded successfully.",
+        Duration = 5,
+        Icon     = "zap",
+    })
+end)
