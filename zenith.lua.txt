@@ -1,0 +1,660 @@
+-- ┌──────────────────────────────────────────────────────────────────────────┐
+-- │                         ZENITH HUB  ·  v1.0                             │
+-- │           UI powered by Airflow-UI (PookiePepelsss/Airflow-UI)           │
+-- │          Compatible PC & téléphone – OpenButton activé par défaut        │
+-- └──────────────────────────────────────────────────────────────────────────┘
+
+-- ── Chargement de la bibliothèque ──────────────────────────────────────────
+local Airflow = loadstring(game:HttpGet(
+    "https://raw.githubusercontent.com/PookiePepelsss/Airflow-UI/refs/heads/main/Source.luau"
+))()
+
+-- ── Services ───────────────────────────────────────────────────────────────
+local Players       = game:GetService("Players")
+local RunService    = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Workspace     = game:GetService("Workspace")
+
+local LocalPlayer  = Players.LocalPlayer
+local Character    = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local Humanoid     = Character:WaitForChild("Humanoid")
+local RootPart     = Character:WaitForChild("HumanoidRootPart")
+
+-- ── Pré-chargement des icônes (optionnel mais recommandé) ──────────────────
+Airflow:PreloadIcons()
+
+-- ── Thème personnalisé "Zenith" ────────────────────────────────────────────
+Airflow.Theme.Background   = Color3.fromRGB(10, 10, 18)
+Airflow.Theme.Surface      = Color3.fromRGB(14, 14, 24)
+Airflow.Theme.Surface2     = Color3.fromRGB(18, 18, 32)
+Airflow.Theme.Surface3     = Color3.fromRGB(30, 30, 52)
+Airflow.Theme.Stroke       = Color3.fromRGB(35, 35, 60)
+Airflow.Theme.StrokeHover  = Color3.fromRGB(80, 80, 160)
+Airflow.Theme.Accent       = Color3.fromRGB(140, 180, 255)   -- bleu ciel
+Airflow.Theme.AccentDark   = Color3.fromRGB(10, 14, 28)
+Airflow.Theme.Text         = Color3.fromRGB(225, 230, 255)
+Airflow.Theme.Muted        = Color3.fromRGB(100, 105, 140)
+Airflow.Theme.Success      = Color3.fromRGB(120, 220, 150)
+Airflow.Theme.Warning      = Color3.fromRGB(240, 190, 90)
+Airflow.Theme.Error        = Color3.fromRGB(240, 100, 100)
+
+-- ══════════════════════════════════════════════════════════════════════════
+--  FENÊTRE PRINCIPALE
+-- ══════════════════════════════════════════════════════════════════════════
+local Window = Airflow:CreateWindow({
+    Name            = "Zenith",
+    LoadingSubtitle = "by Zenith Team",
+    Icon            = "zap",
+    ToggleUIKeybind = "RightControl",
+
+    -- Taille & limites (se réduit automatiquement sur petits écrans)
+    Size    = UDim2.fromOffset(660, 490),
+    MinSize = Vector2.new(400, 320),
+    MaxSize = Vector2.new(1100, 750),
+
+    -- Bouton flottant pour rouvrir le hub — toujours visible sur mobile
+    OpenButton = { Title = "Zenith", Icon = "zap" },
+
+    -- Écran de chargement
+    Loading = {
+        Enabled  = true,
+        Title    = "Zenith",
+        Text     = "Initialisation…",
+        Steps    = {
+            "Chargement des modules",
+            "Connexion aux services",
+            "Préparation de l'interface",
+            "Presque prêt",
+        },
+        Duration = 2,
+    },
+
+    -- Sauvegarde automatique des paramètres
+    ConfigurationSaving = {
+        Enabled    = true,
+        FolderName = "ZenithHub",
+        FileName   = "default",
+    },
+
+    -- Onglet Home intégré
+    Home = {
+        Name      = "Accueil",
+        Desc      = "Session",
+        Icon      = "layout-dashboard",
+        Welcome   = "Salut, ",
+        Greeting  = "Bienvenue sur Zenith.",
+        SectionName = "Statistiques",
+        Stats     = { "FPS", "Ping", "Executor", "Game", "Region", "Players", "Uptime" },
+        Pages = {
+            {
+                Name = "Changelog",
+                Icon = "scroll-text",
+                Entries = {
+                    {
+                        Title   = "v1.0",
+                        Tag     = "Dernière",
+                        Changes = {
+                            "Lancement de Zenith Hub",
+                            "Interface Airflow-UI",
+                            "Compatibilité mobile",
+                            "5 onglets : Accueil · Player · Visual · Misc · Paramètres",
+                        },
+                    },
+                },
+            },
+            {
+                Name    = "À propos",
+                Icon    = "info",
+                Content = "Zenith Hub est un script Roblox universel conçu pour être rapide, propre et mobile-first. Toute l'interface est propulsée par Airflow-UI.",
+            },
+        },
+    },
+})
+
+-- ══════════════════════════════════════════════════════════════════════════
+--  ONGLET 1 — PLAYER
+-- ══════════════════════════════════════════════════════════════════════════
+local TabPlayer = Window:CreateTab({
+    Name = "Player",
+    Desc = "Mouvement & personnage",
+    Icon = "person-standing",
+})
+
+-- ── Speed ─────────────────────────────────────────────────────────────────
+TabPlayer:CreateSection("Mouvement")
+
+local SpeedSlider = TabPlayer:CreateSlider({
+    Name         = "Walk Speed",
+    Desc         = "Vitesse de marche (défaut : 16)",
+    Range        = { 0, 500 },
+    Increment    = 1,
+    Suffix       = " sps",
+    CurrentValue = 16,
+    Flag         = "WalkSpeed",
+    Callback     = function(Value)
+        if Humanoid then
+            Humanoid.WalkSpeed = Value
+        end
+    end,
+})
+
+local JumpSlider = TabPlayer:CreateSlider({
+    Name         = "Jump Power",
+    Desc         = "Puissance de saut (défaut : 50)",
+    Range        = { 0, 300 },
+    Increment    = 1,
+    Suffix       = " u/s",
+    CurrentValue = 50,
+    Flag         = "JumpPower",
+    Callback     = function(Value)
+        if Humanoid then
+            Humanoid.JumpPower = Value
+        end
+    end,
+})
+
+TabPlayer:CreateButton({
+    Name     = "Réinitialiser vitesse",
+    Desc     = "Remet Speed 16 et Jump 50",
+    Icon     = "rotate-ccw",
+    Callback = function()
+        SpeedSlider:Set(16)
+        JumpSlider:Set(50)
+        Airflow:Notify({
+            Title   = "Réinitialisé",
+            Content = "Walk Speed & Jump Power remis à zéro.",
+            Icon    = "check",
+            Type    = "Success",
+            Duration = 3,
+        })
+    end,
+})
+
+-- ── Noclip ────────────────────────────────────────────────────────────────
+TabPlayer:CreateSection("Physique")
+
+local noclipActive = false
+local noclipConnection
+
+TabPlayer:CreateToggle({
+    Name     = "Noclip",
+    Desc     = "Passe à travers les murs",
+    Flag     = "Noclip",
+    Callback = function(Value)
+        noclipActive = Value
+        if Value then
+            noclipConnection = RunService.Stepped:Connect(function()
+                if Character then
+                    for _, part in ipairs(Character:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.CanCollide = false
+                        end
+                    end
+                end
+            end)
+        else
+            if noclipConnection then
+                noclipConnection:Disconnect()
+                noclipConnection = nil
+            end
+            -- Réactive la collision
+            for _, part in ipairs(Character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = true
+                end
+            end
+        end
+    end,
+})
+
+local infiniteJumpActive = false
+local ijConn
+
+TabPlayer:CreateToggle({
+    Name     = "Infinite Jump",
+    Desc     = "Sauter même en l'air",
+    Flag     = "InfiniteJump",
+    Callback = function(Value)
+        infiniteJumpActive = Value
+        if Value then
+            ijConn = UserInputService.JumpRequest:Connect(function()
+                if infiniteJumpActive and Humanoid then
+                    Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                end
+            end)
+        else
+            if ijConn then
+                ijConn:Disconnect()
+                ijConn = nil
+            end
+        end
+    end,
+})
+
+-- ── Téléportation ─────────────────────────────────────────────────────────
+TabPlayer:CreateSection("Téléportation")
+
+TabPlayer:CreateButton({
+    Name     = "Téléporter à spawn",
+    Desc     = "RespawnLocation ou origine (0,0,0)",
+    Icon     = "map-pin",
+    Callback = function()
+        local spawnLocation = Workspace:FindFirstChildOfClass("SpawnLocation")
+        if RootPart then
+            if spawnLocation then
+                RootPart.CFrame = CFrame.new(spawnLocation.Position + Vector3.new(0, 5, 0))
+            else
+                RootPart.CFrame = CFrame.new(0, 10, 0)
+            end
+            Airflow:Notify({
+                Title    = "Téléporté",
+                Content  = "Arrivée au spawn.",
+                Icon     = "map-pin",
+                Type     = "Success",
+                Duration = 2,
+            })
+        end
+    end,
+})
+
+local tpPlayerInput = TabPlayer:CreateInput({
+    Name            = "Téléporter vers joueur",
+    Desc            = "Nom du joueur cible",
+    Icon            = "user",
+    PlaceholderText = "ex : Pookie123",
+    Flag            = "TpTargetPlayer",
+    Callback        = function(Text, Enter)
+        if not Enter then return end
+        local target = Players:FindFirstChild(Text)
+            or (function()
+                for _, p in ipairs(Players:GetPlayers()) do
+                    if p.Name:lower():find(Text:lower()) then
+                        return p
+                    end
+                end
+            end)()
+        if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+            RootPart.CFrame = target.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -3)
+            Airflow:Notify({
+                Title    = "Téléporté",
+                Content  = "Arrivée près de " .. target.Name,
+                Icon     = "user",
+                Type     = "Success",
+                Duration = 3,
+            })
+        else
+            Airflow:Notify({
+                Title    = "Introuvable",
+                Content  = "Aucun joueur correspondant à \"" .. Text .. "\".",
+                Icon     = "alert-triangle",
+                Type     = "Warning",
+                Duration = 3,
+            })
+        end
+    end,
+})
+
+-- ══════════════════════════════════════════════════════════════════════════
+--  ONGLET 2 — VISUAL
+-- ══════════════════════════════════════════════════════════════════════════
+local TabVisual = Window:CreateTab({
+    Name = "Visual",
+    Desc = "Effets visuels & caméra",
+    Icon = "eye",
+})
+
+TabVisual:CreateSection("Joueurs")
+
+local espActive = false
+local espHighlights = {}
+
+local function removeESP()
+    for _, h in pairs(espHighlights) do
+        if h and h.Parent then h:Destroy() end
+    end
+    espHighlights = {}
+end
+
+local function buildESP()
+    removeESP()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            local h = Instance.new("Highlight")
+            h.FillColor   = Color3.fromRGB(140, 180, 255)
+            h.OutlineColor = Color3.fromRGB(255, 255, 255)
+            h.FillTransparency    = 0.5
+            h.OutlineTransparency = 0
+            h.Adornee = player.Character
+            h.Parent  = player.Character
+            espHighlights[player.Name] = h
+        end
+    end
+end
+
+TabVisual:CreateToggle({
+    Name     = "ESP Joueurs",
+    Desc     = "Highlight tous les joueurs",
+    Flag     = "ESP",
+    Callback = function(Value)
+        espActive = Value
+        if Value then
+            buildESP()
+        else
+            removeESP()
+        end
+    end,
+})
+
+-- Refresh ESP quand un joueur apparaît
+Players.PlayerAdded:Connect(function(player)
+    if not espActive then return end
+    player.CharacterAdded:Connect(function(char)
+        task.wait(1)
+        if espActive then buildESP() end
+    end)
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    if espHighlights[player.Name] then
+        espHighlights[player.Name]:Destroy()
+        espHighlights[player.Name] = nil
+    end
+end)
+
+-- Couleur de l'ESP
+TabVisual:CreateColorPicker({
+    Name     = "Couleur ESP",
+    Desc     = "Teinte du highlight",
+    Color    = Color3.fromRGB(140, 180, 255),
+    Flag     = "EspColor",
+    Callback = function(Color)
+        for _, h in pairs(espHighlights) do
+            h.FillColor = Color
+        end
+    end,
+})
+
+TabVisual:CreateSection("Environnement")
+
+TabVisual:CreateSlider({
+    Name         = "Field of View",
+    Desc         = "Champ de vision de la caméra",
+    Range        = { 30, 120 },
+    Increment    = 1,
+    Suffix       = "°",
+    CurrentValue = 70,
+    Flag         = "FOV",
+    Callback     = function(Value)
+        Workspace.CurrentCamera.FieldOfView = Value
+    end,
+})
+
+local brightnessBefore = Workspace:FindFirstChildOfClass("Lighting") and
+    game:GetService("Lighting").Brightness or 2
+
+TabVisual:CreateSlider({
+    Name         = "Luminosité",
+    Desc         = "Brightness de l'environnement",
+    Range        = { 0, 10 },
+    Increment    = 0.1,
+    CurrentValue = brightnessBefore,
+    Flag         = "EnvBrightness",
+    Callback     = function(Value)
+        local Lighting = game:GetService("Lighting")
+        if Lighting then
+            Lighting.Brightness = Value
+        end
+    end,
+})
+
+TabVisual:CreateToggle({
+    Name     = "Fullbright",
+    Desc     = "Retire toutes les ombres / nuit",
+    Flag     = "Fullbright",
+    Callback = function(Value)
+        local Lighting = game:GetService("Lighting")
+        if Value then
+            Lighting.Ambient          = Color3.new(1, 1, 1)
+            Lighting.OutdoorAmbient   = Color3.new(1, 1, 1)
+            Lighting.Brightness       = 5
+            Lighting.ClockTime        = 14
+            Lighting.FogEnd           = 100000
+        else
+            Lighting.Ambient          = Color3.fromRGB(70, 70, 70)
+            Lighting.OutdoorAmbient   = Color3.fromRGB(120, 120, 120)
+            Lighting.Brightness       = brightnessBefore
+            Lighting.ClockTime        = 14
+        end
+    end,
+})
+
+-- ══════════════════════════════════════════════════════════════════════════
+--  ONGLET 3 — MISC
+-- ══════════════════════════════════════════════════════════════════════════
+local TabMisc = Window:CreateTab({
+    Name = "Misc",
+    Desc = "Divers & outils",
+    Icon = "wrench",
+})
+
+TabMisc:CreateSection("Chat & Interface")
+
+TabMisc:CreateButton({
+    Name     = "Anti AFK",
+    Desc     = "Simule un mouvement toutes les 15 s",
+    Icon     = "clock",
+    Callback = function()
+        local VirtualUser = game:GetService("VirtualUser")
+        LocalPlayer.Idled:Connect(function()
+            VirtualUser:Button2Down(Vector2.new(0, 0), Workspace.CurrentCamera.CFrame)
+            task.wait(1)
+            VirtualUser:Button2Up(Vector2.new(0, 0), Workspace.CurrentCamera.CFrame)
+        end)
+        Airflow:Notify({
+            Title    = "Anti AFK activé",
+            Content  = "Tu ne seras plus déconnecté pour inactivité.",
+            Icon     = "shield-check",
+            Type     = "Success",
+            Duration = 4,
+        })
+    end,
+})
+
+TabMisc:CreateButton({
+    Name     = "Copier UserID",
+    Desc     = "Copie ton ID dans le presse-papiers",
+    Icon     = "copy",
+    Callback = function()
+        if setclipboard then
+            setclipboard(tostring(LocalPlayer.UserId))
+            Airflow:Notify({
+                Title   = "Copié",
+                Content = "UserID : " .. LocalPlayer.UserId,
+                Icon    = "copy",
+                Type    = "Success",
+                Duration = 3,
+            })
+        else
+            Airflow:Notify({
+                Title   = "Non supporté",
+                Content = "setclipboard n'est pas disponible dans cet exécuteur.",
+                Icon    = "alert-triangle",
+                Type    = "Warning",
+                Duration = 3,
+            })
+        end
+    end,
+})
+
+TabMisc:CreateSection("Jeu")
+
+TabMisc:CreateButton({
+    Name     = "Rejoindre la partie",
+    Desc     = "Reconnexion au même serveur",
+    Icon     = "refresh-cw",
+    Callback = function()
+        Airflow:Confirm({
+            Title       = "Rejoindre ?",
+            Content     = "Cela va te reconnecter au serveur actuel.",
+            Icon        = "refresh-cw",
+            ConfirmText = "Reconnecter",
+            CancelText  = "Annuler",
+            Callback    = function()
+                game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer)
+            end,
+        })
+    end,
+})
+
+TabMisc:CreateButton({
+    Name     = "Quitter le jeu",
+    Desc     = "Ferme la session Roblox",
+    Icon     = "log-out",
+    Style    = "Primary",
+    Callback = function()
+        Airflow:Confirm({
+            Title       = "Quitter ?",
+            Content     = "Tu vas quitter le jeu. Toutes les données non sauvegardées seront perdues.",
+            Icon        = "log-out",
+            ConfirmText = "Quitter",
+            CancelText  = "Rester",
+            Callback    = function()
+                game:Shutdown()
+            end,
+        })
+    end,
+})
+
+TabMisc:CreateSection("Informations")
+
+TabMisc:CreateParagraph({
+    Name    = "Serveur",
+    Content = "JobId : " .. game.JobId .. "\nPlaceId : " .. game.PlaceId .. "\nJoueurs : " .. #Players:GetPlayers(),
+})
+
+-- ══════════════════════════════════════════════════════════════════════════
+--  ONGLET 4 — PARAMÈTRES
+-- ══════════════════════════════════════════════════════════════════════════
+local TabSettings = Window:CreateTab({
+    Name = "Paramètres",
+    Desc = "UI & configuration",
+    Icon = "settings",
+})
+
+TabSettings:CreateSection("Interface")
+
+TabSettings:CreateKeybind({
+    Name           = "Touche d'ouverture",
+    Desc           = "Raccourci clavier pour afficher/cacher le hub",
+    CurrentKeybind = "RightControl",
+    Flag           = "ToggleKey",
+    Callback       = function(Key)
+        -- Airflow gère automatiquement le keybind via Flag + SetKeybind
+    end,
+    OnChanged      = function(Key)
+        Window:SetKeybind(Key)
+        Airflow:Notify({
+            Title   = "Raccourci mis à jour",
+            Content = "Nouvelle touche : " .. Key.Name,
+            Icon    = "keyboard",
+            Type    = "Info",
+            Duration = 3,
+        })
+    end,
+})
+
+TabSettings:CreateToggle({
+    Name     = "Rester dans l'écran",
+    Desc     = "Empêche la fenêtre de sortir du viewport",
+    Flag     = "KeepOnScreen",
+    CurrentValue = true,
+    Callback = function(Value)
+        Window:SetKeepOnScreen(Value)
+    end,
+})
+
+TabSettings:CreateSection("Sauvegarde")
+
+TabSettings:CreateConfigManager({ Name = "Config" })
+
+TabSettings:CreateSection("Notifications de test")
+
+TabSettings:CreateButton({
+    Name     = "Test – Succès",
+    Icon     = "check-circle",
+    Callback = function()
+        Airflow:Notify({
+            Title    = "Succès",
+            Content  = "Tout fonctionne correctement.",
+            Icon     = "check-circle",
+            Type     = "Success",
+            Duration = 3,
+        })
+    end,
+})
+
+TabSettings:CreateButton({
+    Name     = "Test – Avertissement",
+    Icon     = "alert-triangle",
+    Callback = function()
+        Airflow:Notify({
+            Title    = "Avertissement",
+            Content  = "Quelque chose nécessite ton attention.",
+            Icon     = "alert-triangle",
+            Type     = "Warning",
+            Duration = 3,
+        })
+    end,
+})
+
+TabSettings:CreateButton({
+    Name     = "Test – Erreur",
+    Icon     = "x-circle",
+    Callback = function()
+        Airflow:Notify({
+            Title    = "Erreur",
+            Content  = "Une erreur s'est produite.",
+            Icon     = "x-circle",
+            Type     = "Error",
+            Duration = 3,
+        })
+    end,
+})
+
+TabSettings:CreateDivider()
+
+TabSettings:CreateButton({
+    Name     = "Décharger Zenith",
+    Desc     = "Ferme et supprime entièrement l'interface",
+    Icon     = "trash-2",
+    Callback = function()
+        Airflow:Confirm({
+            Title       = "Décharger ?",
+            Content     = "L'interface sera complètement supprimée. Aucune donnée perdue.",
+            Icon        = "trash-2",
+            ConfirmText = "Décharger",
+            CancelText  = "Annuler",
+            Callback    = function()
+                -- Nettoyages
+                if noclipConnection then noclipConnection:Disconnect() end
+                if ijConn then ijConn:Disconnect() end
+                removeESP()
+                Window:Destroy()
+            end,
+        })
+    end,
+})
+
+-- ══════════════════════════════════════════════════════════════════════════
+--  CHARGEMENT DE LA CONFIG SAUVEGARDÉE
+-- ══════════════════════════════════════════════════════════════════════════
+Window:LoadConfig()
+
+-- ── Notification de bienvenue ─────────────────────────────────────────────
+Airflow:Notify({
+    Title    = "Zenith chargé",
+    Content  = "Salut " .. LocalPlayer.DisplayName .. " ! Bienvenue sur Zenith v1.0.",
+    Icon     = "zap",
+    Type     = "Success",
+    Duration = 5,
+})
