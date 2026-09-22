@@ -1,0 +1,1196 @@
+-- ╔══════════════════════════════════════════════════════════════════════╗
+-- ║                     ZENITH HUB  ·  v2.0                             ║
+-- ║         UI powered by Airflow-UI — PookiePepelsss/Airflow-UI         ║
+-- ╚══════════════════════════════════════════════════════════════════════╝
+
+local Airflow = loadstring(game:HttpGet(
+    "https://raw.githubusercontent.com/PookiePepelsss/Airflow-UI/refs/heads/main/Source.luau"
+))()
+
+-- ── Services ───────────────────────────────────────────────────────────────
+local Players          = game:GetService("Players")
+local RunService       = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService     = game:GetService("TweenService")
+local TeleportService  = game:GetService("TeleportService")
+local VirtualUser      = game:GetService("VirtualUser")
+local Lighting         = game:GetService("Lighting")
+local Workspace        = game:GetService("Workspace")
+local HttpService      = game:GetService("HttpService")
+
+local LocalPlayer = Players.LocalPlayer
+
+local function getChar()   return LocalPlayer.Character end
+local function getHum()    local c = getChar() return c and c:FindFirstChildOfClass("Humanoid") end
+local function getRoot()   local c = getChar() return c and c:FindFirstChild("HumanoidRootPart") end
+
+-- ── Thème Zenith ───────────────────────────────────────────────────────────
+Airflow.Theme.Background  = Color3.fromRGB(8,  8,  14)
+Airflow.Theme.Surface     = Color3.fromRGB(12, 12, 20)
+Airflow.Theme.Surface2    = Color3.fromRGB(16, 16, 28)
+Airflow.Theme.Surface3    = Color3.fromRGB(26, 26, 48)
+Airflow.Theme.Stroke      = Color3.fromRGB(32, 32, 58)
+Airflow.Theme.StrokeHover = Color3.fromRGB(90, 90, 180)
+Airflow.Theme.Accent      = Color3.fromRGB(120, 160, 255)
+Airflow.Theme.AccentDark  = Color3.fromRGB(8,  10, 22)
+Airflow.Theme.Text        = Color3.fromRGB(220, 225, 255)
+Airflow.Theme.Muted       = Color3.fromRGB(90,  95, 130)
+Airflow.Theme.Success     = Color3.fromRGB(100, 220, 140)
+Airflow.Theme.Warning     = Color3.fromRGB(240, 190, 80)
+Airflow.Theme.Error       = Color3.fromRGB(240, 90,  90)
+
+Airflow:PreloadIcons()
+Airflow:LoadFont({ Name = "ValleySans" })
+
+-- ══════════════════════════════════════════════════════════════════════════
+--  WINDOW
+-- ══════════════════════════════════════════════════════════════════════════
+local Window = Airflow:CreateWindow({
+    Name            = "Zenith",
+    LoadingSubtitle = "by Zenith Team",
+    Icon            = "zap",
+    ToggleUIKeybind = "RightControl",
+    Size            = UDim2.fromOffset(680, 500),
+    MinSize         = Vector2.new(420, 320),
+    MaxSize         = Vector2.new(1100, 760),
+    MaxNotifications = 4,
+    KeepOnScreen    = true,
+    OpenButton      = { Title = "Zenith", Icon = "zap" },
+    Loading = {
+        Enabled  = true,
+        Title    = "Zenith",
+        Text     = "Chargement…",
+        Steps    = {
+            "Initialisation des modules",
+            "Connexion aux services Roblox",
+            "Chargement des icônes",
+            "Préparation de l'interface",
+            "Prêt",
+        },
+        Duration = 2.2,
+    },
+    ConfigurationSaving = {
+        Enabled    = true,
+        FolderName = "ZenithHub",
+        FileName   = "default",
+    },
+    Home = {
+        Name        = "Accueil",
+        Desc        = "Session",
+        Icon        = "layout-dashboard",
+        Welcome     = "Salut, ",
+        Greeting    = "Bienvenue sur Zenith.",
+        SectionName = "Statistiques",
+        Stats       = { "FPS", "Ping", "Executor", "Game", "Region", "Players", "Uptime" },
+        Pages = {
+            {
+                Name = "Changelog",
+                Icon = "scroll-text",
+                Entries = {
+                    {
+                        Title   = "v2.0",
+                        Tag     = "Dernière",
+                        Changes = {
+                            "Refonte complète de l'UI avec Airflow-UI",
+                            "Compatibilité téléphone (OpenButton)",
+                            "Onglet Player : Speed / Jump / Fly / Noclip / Infinite Jump / God / Anti-Void",
+                            "Onglet Combat : Silent Aim / Aimbot / Hitbox / AutoClick",
+                            "Onglet Visual : ESP / Chams / Fullbright / FOV / No Fog",
+                            "Onglet Misc : Anti-AFK / Rejoin / ServerHop / Chat Bypass / Copy UID",
+                            "Onglet Paramètres : Keybind / Thème / ConfigManager / Unload",
+                        },
+                    },
+                    {
+                        Title   = "v1.0",
+                        Tag     = "Sep 22",
+                        Changes = { "Première version de Zenith Hub" },
+                    },
+                },
+            },
+            {
+                Name    = "À propos",
+                Icon    = "info",
+                Content = "Zenith Hub est un script universel pour Roblox. Toutes les features sont configurables et sauvegardées automatiquement. Compatible PC & téléphone.",
+            },
+        },
+    },
+})
+
+-- ══════════════════════════════════════════════════════════════════════════
+--  ÉTAT GLOBAL
+-- ══════════════════════════════════════════════════════════════════════════
+local State = {
+    -- Player
+    fly        = false,
+    flyConn    = nil,
+    flyBody    = nil,
+    noclip     = false,
+    noclipConn = nil,
+    infJump    = false,
+    ijConn     = nil,
+    god        = false,
+    godConn    = nil,
+    antivoid   = false,
+    avConn     = nil,
+    -- Combat
+    silentAim  = false,
+    aimbot     = false,
+    autoClick  = false,
+    acConn     = nil,
+    -- Visual
+    esp        = false,
+    espHL      = {},
+    chams      = false,
+    chamsHL    = {},
+    fullbright = false,
+    origAmbient    = Lighting.Ambient,
+    origOutdoor    = Lighting.OutdoorAmbient,
+    origBrightness = Lighting.Brightness,
+    origClockTime  = Lighting.ClockTime,
+    origFogEnd     = Lighting.FogEnd,
+}
+
+local function notify(title, content, icon, ntype, duration)
+    Airflow:Notify({ Title = title, Content = content, Icon = icon or "info", Type = ntype or "Info", Duration = duration or 3 })
+end
+
+-- ══════════════════════════════════════════════════════════════════════════
+--  ONGLET PLAYER
+-- ══════════════════════════════════════════════════════════════════════════
+local TabPlayer = Window:CreateTab({ Name = "Player", Desc = "Mouvement & personnage", Icon = "person-standing" })
+
+-- ── Mouvement ──────────────────────────────────────────────────────────────
+TabPlayer:CreateSection("Mouvement")
+
+local SpeedSlider = TabPlayer:CreateSlider({
+    Name = "Walk Speed", Desc = "Vitesse de marche (défaut 16)",
+    Range = { 0, 500 }, Increment = 1, Suffix = " sps", CurrentValue = 16,
+    Flag = "WalkSpeed",
+    Callback = function(v)
+        local h = getHum()
+        if h then h.WalkSpeed = v end
+    end,
+})
+
+local JumpSlider = TabPlayer:CreateSlider({
+    Name = "Jump Power", Desc = "Puissance de saut (défaut 50)",
+    Range = { 0, 300 }, Increment = 1, Suffix = " u/s", CurrentValue = 50,
+    Flag = "JumpPower",
+    Callback = function(v)
+        local h = getHum()
+        if h then h.JumpPower = v end
+    end,
+})
+
+TabPlayer:CreateButton({
+    Name = "Reset vitesse & saut", Icon = "rotate-ccw",
+    Callback = function()
+        SpeedSlider:Set(16)
+        JumpSlider:Set(50)
+        notify("Réinitialisé", "Speed 16 · Jump 50", "rotate-ccw", "Success")
+    end,
+})
+
+-- ── Fly ────────────────────────────────────────────────────────────────────
+TabPlayer:CreateSection("Fly")
+
+local flySpeedStep = TabPlayer:CreateStepper({
+    Name = "Vitesse de vol", Range = { 5, 200 }, Increment = 5,
+    Suffix = " u/s", CurrentValue = 50, Flag = "FlySpeed",
+    Callback = function() end,
+})
+
+local function stopFly()
+    State.fly = false
+    if State.flyConn then State.flyConn:Disconnect(); State.flyConn = nil end
+    if State.flyBody then State.flyBody:Destroy(); State.flyBody = nil end
+    local h = getHum()
+    if h then h.PlatformStand = false end
+end
+
+local function startFly()
+    local root = getRoot()
+    local h = getHum()
+    if not root or not h then return end
+    h.PlatformStand = true
+    State.fly = true
+
+    local bg = Instance.new("BodyGyro")
+    bg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+    bg.D, bg.P = 100, 1000
+    bg.CFrame = root.CFrame
+    bg.Parent = root
+
+    local bv = Instance.new("BodyVelocity")
+    bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+    bv.Velocity = Vector3.zero
+    bv.Parent = root
+
+    State.flyBody = Instance.new("Folder")
+    bg.Parent = State.flyBody
+    bv.Parent = State.flyBody
+    State.flyBody.Parent = root
+
+    local cam = Workspace.CurrentCamera
+    State.flyConn = RunService.RenderStepped:Connect(function()
+        if not State.fly then stopFly(); return end
+        local speed = flySpeedStep:Get()
+        local cf = cam.CFrame
+        local dir = Vector3.zero
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + cf.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - cf.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir = dir - cf.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir = dir + cf.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then dir = dir + Vector3.yAxis end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then dir = dir - Vector3.yAxis end
+        bv.Velocity = dir.Magnitude > 0 and dir.Unit * speed or Vector3.zero
+        bg.CFrame = cf
+    end)
+end
+
+TabPlayer:CreateToggle({
+    Name = "Fly", Desc = "Voler librement (WASD + Space / Ctrl)",
+    Flag = "Fly",
+    Callback = function(v)
+        if v then startFly() else stopFly() end
+    end,
+})
+
+-- ── Physique ───────────────────────────────────────────────────────────────
+TabPlayer:CreateSection("Physique")
+
+TabPlayer:CreateToggle({
+    Name = "Noclip", Desc = "Passe à travers les murs",
+    Flag = "Noclip",
+    Callback = function(v)
+        State.noclip = v
+        if v then
+            State.noclipConn = RunService.Stepped:Connect(function()
+                local c = getChar()
+                if not c then return end
+                for _, p in ipairs(c:GetDescendants()) do
+                    if p:IsA("BasePart") then p.CanCollide = false end
+                end
+            end)
+        else
+            if State.noclipConn then State.noclipConn:Disconnect(); State.noclipConn = nil end
+            local c = getChar()
+            if c then
+                for _, p in ipairs(c:GetDescendants()) do
+                    if p:IsA("BasePart") then p.CanCollide = true end
+                end
+            end
+        end
+    end,
+})
+
+TabPlayer:CreateToggle({
+    Name = "Infinite Jump", Desc = "Sauter sans limite",
+    Flag = "InfJump",
+    Callback = function(v)
+        State.infJump = v
+        if v then
+            State.ijConn = UserInputService.JumpRequest:Connect(function()
+                local h = getHum()
+                if State.infJump and h then h:ChangeState(Enum.HumanoidStateType.Jumping) end
+            end)
+        else
+            if State.ijConn then State.ijConn:Disconnect(); State.ijConn = nil end
+        end
+    end,
+})
+
+TabPlayer:CreateToggle({
+    Name = "God Mode", Desc = "Santé infinie — remet 100 HP en boucle",
+    Flag = "GodMode",
+    Callback = function(v)
+        State.god = v
+        if v then
+            State.godConn = RunService.Heartbeat:Connect(function()
+                local h = getHum()
+                if h and State.god then h.Health = h.MaxHealth end
+            end)
+        else
+            if State.godConn then State.godConn:Disconnect(); State.godConn = nil end
+        end
+    end,
+})
+
+TabPlayer:CreateToggle({
+    Name = "Anti-Void", Desc = "Respawn si tu tombes sous Y = -100",
+    Flag = "AntiVoid",
+    Callback = function(v)
+        State.antivoid = v
+        if v then
+            State.avConn = RunService.Heartbeat:Connect(function()
+                local r = getRoot()
+                if r and State.antivoid and r.Position.Y < -100 then
+                    r.CFrame = CFrame.new(0, 10, 0)
+                end
+            end)
+        else
+            if State.avConn then State.avConn:Disconnect(); State.avConn = nil end
+        end
+    end,
+})
+
+-- ── Téléportation ──────────────────────────────────────────────────────────
+TabPlayer:CreateSection("Téléportation")
+
+TabPlayer:CreateButton({
+    Name = "Téléporter au spawn", Icon = "map-pin",
+    Callback = function()
+        local r = getRoot()
+        if not r then return end
+        local sp = Workspace:FindFirstChildOfClass("SpawnLocation")
+        r.CFrame = sp and CFrame.new(sp.Position + Vector3.new(0, 5, 0)) or CFrame.new(0, 10, 0)
+        notify("Téléporté", "Arrivée au spawn.", "map-pin", "Success")
+    end,
+})
+
+TabPlayer:CreateInput({
+    Name = "Téléporter vers joueur", Desc = "Nom partiel accepté", Icon = "user",
+    PlaceholderText = "Nom du joueur", Flag = "TpTarget",
+    Callback = function(text, enter)
+        if not enter then return end
+        local found
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Name:lower():find(text:lower(), 1, true) then
+                found = p; break
+            end
+        end
+        local r = getRoot()
+        if found and found.Character and found.Character:FindFirstChild("HumanoidRootPart") and r then
+            r.CFrame = found.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -3)
+            notify("Téléporté", "Arrivée près de " .. found.Name, "user", "Success")
+        else
+            notify("Introuvable", "Aucun joueur : " .. text, "alert-triangle", "Warning")
+        end
+    end,
+})
+
+TabPlayer:CreateButton({
+    Name = "Bring tous les joueurs", Desc = "Téléporte tout le monde sur toi", Icon = "users",
+    Callback = function()
+        local r = getRoot()
+        if not r then return end
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                p.Character.HumanoidRootPart.CFrame = r.CFrame * CFrame.new(math.random(-3,3), 0, math.random(-3,3))
+            end
+        end
+        notify("Bring", "Tous les joueurs ont été rapprochés.", "users", "Success")
+    end,
+})
+
+-- ── Apparence ─────────────────────────────────────────────────────────────
+TabPlayer:CreateSection("Apparence")
+
+TabPlayer:CreateSlider({
+    Name = "Taille du personnage", Desc = "Scale global",
+    Range = { 50, 300 }, Increment = 5, Suffix = "%", CurrentValue = 100,
+    Flag = "CharSize",
+    Callback = function(v)
+        local h = getHum()
+        if h then
+            local scale = v / 100
+            for _, desc in ipairs(h:GetChildren()) do
+                if desc:IsA("NumberValue") then
+                    desc.Value = scale
+                end
+            end
+        end
+    end,
+})
+
+TabPlayer:CreateToggle({
+    Name = "Invisible", Desc = "Rend ton personnage transparent",
+    Flag = "Invisible",
+    Callback = function(v)
+        local c = getChar()
+        if not c then return end
+        for _, p in ipairs(c:GetDescendants()) do
+            if p:IsA("BasePart") and p.Name ~= "HumanoidRootPart" then
+                p.LocalTransparencyModifier = v and 1 or 0
+            elseif p:IsA("Decal") then
+                p.Transparency = v and 1 or 0
+            end
+        end
+    end,
+})
+
+-- ══════════════════════════════════════════════════════════════════════════
+--  ONGLET COMBAT
+-- ══════════════════════════════════════════════════════════════════════════
+local TabCombat = Window:CreateTab({ Name = "Combat", Desc = "Aim & combat", Icon = "crosshair" })
+
+TabCombat:CreateSection("Aim")
+
+local saFov   = 120
+local saTeam  = true
+local aimbotFov = 80
+
+local function getNearestPlayer(fovRadius)
+    local cam    = Workspace.CurrentCamera
+    local best, bestDist = nil, fovRadius
+    local center = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            if saTeam and p.Team == LocalPlayer.Team then continue end
+            local h = p.Character:FindFirstChild("Head")
+            if h then
+                local pos, onScreen = cam:WorldToViewportPoint(h.Position)
+                if onScreen then
+                    local dist = (Vector2.new(pos.X, pos.Y) - center).Magnitude
+                    if dist < bestDist then
+                        bestDist = dist
+                        best = p
+                    end
+                end
+            end
+        end
+    end
+    return best
+end
+
+TabCombat:CreateToggle({
+    Name = "Silent Aim", Desc = "Redirige les projectiles sans bouger la caméra",
+    Flag = "SilentAim",
+    Callback = function(v) State.silentAim = v end,
+})
+
+local saFovSlider = TabCombat:CreateSlider({
+    Name = "FOV Silent Aim", Range = { 10, 400 }, Increment = 5, Suffix = " px",
+    CurrentValue = saFov, Flag = "SaFov",
+    Callback = function(v) saFov = v end,
+})
+
+TabCombat:CreateToggle({
+    Name = "Ignorer son équipe", Desc = "Vise aussi les coéquipiers",
+    CurrentValue = true, Flag = "SaTeam",
+    Callback = function(v) saTeam = not v end,
+})
+
+TabCombat:CreateToggle({
+    Name = "Aimbot", Desc = "Verrouille la caméra sur la tête du joueur le plus proche",
+    Flag = "Aimbot",
+    Callback = function(v)
+        State.aimbot = v
+        if v then
+            local conn
+            conn = RunService.RenderStepped:Connect(function()
+                if not State.aimbot then conn:Disconnect(); return end
+                local target = getNearestPlayer(aimbotFov)
+                if target and target.Character and target.Character:FindFirstChild("Head") then
+                    local head = target.Character.Head
+                    Workspace.CurrentCamera.CFrame = CFrame.new(
+                        Workspace.CurrentCamera.CFrame.Position,
+                        head.Position
+                    )
+                end
+            end)
+        end
+    end,
+})
+
+local aimbotFovSlider = TabCombat:CreateSlider({
+    Name = "FOV Aimbot", Range = { 10, 400 }, Increment = 5, Suffix = " px",
+    CurrentValue = aimbotFov, Flag = "AimbotFov",
+    Callback = function(v) aimbotFov = v end,
+})
+
+-- ── Silent Aim hook ────────────────────────────────────────────────────────
+if syn and syn.set_thread_identity then
+    -- Hook pour exécuteurs supportant newcclosure / hookfunction (Synapse X style)
+    pcall(function()
+        local oldNamecall
+        oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+            local method = getnamecallmethod()
+            if State.silentAim and method == "FireServer" then
+                local target = getNearestPlayer(saFov)
+                if target and target.Character and target.Character:FindFirstChild("Head") then
+                    local args = { ... }
+                    for i, v in ipairs(args) do
+                        if typeof(v) == "Instance" and v:IsA("BasePart") then
+                            args[i] = target.Character.Head
+                        elseif typeof(v) == "CFrame" then
+                            args[i] = CFrame.new(target.Character.Head.Position)
+                        elseif typeof(v) == "Vector3" then
+                            args[i] = target.Character.Head.Position
+                        end
+                    end
+                    return oldNamecall(self, table.unpack(args))
+                end
+            end
+            return oldNamecall(self, ...)
+        end))
+    end)
+end
+
+-- ── HitBox ─────────────────────────────────────────────────────────────────
+TabCombat:CreateSection("Hitbox")
+
+local hitboxSize = 5
+
+local function applyHitbox(size)
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            local hrp = p.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then hrp.Size = Vector3.new(size, size, size) end
+        end
+    end
+end
+
+local function resetHitbox()
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            local hrp = p.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then hrp.Size = Vector3.new(2, 2, 1) end
+        end
+    end
+end
+
+TabCombat:CreateToggle({
+    Name = "Hitbox Expander", Desc = "Agrandit les hitboxes des joueurs",
+    Flag = "HitboxExpander",
+    Callback = function(v)
+        if v then applyHitbox(hitboxSize) else resetHitbox() end
+    end,
+})
+
+TabCombat:CreateSlider({
+    Name = "Taille Hitbox", Range = { 2, 30 }, Increment = 1, Suffix = " u",
+    CurrentValue = hitboxSize, Flag = "HitboxSize",
+    Callback = function(v)
+        hitboxSize = v
+        if Airflow.Flags.HitboxExpander and Airflow.Flags.HitboxExpander:Get() then
+            applyHitbox(v)
+        end
+    end,
+})
+
+-- ── AutoClick ──────────────────────────────────────────────────────────────
+TabCombat:CreateSection("AutoClick")
+
+local acCps = 10
+TabCombat:CreateToggle({
+    Name = "Auto Clicker", Desc = "Clique automatiquement",
+    Flag = "AutoClick",
+    Callback = function(v)
+        State.autoClick = v
+        if v then
+            local vu = game:GetService("VirtualInputManager") or nil
+            task.spawn(function()
+                while State.autoClick do
+                    if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
+                        -- déjà maintenu, on skip
+                    end
+                    -- Simulation via VirtualUser
+                    VirtualUser:Button1Down(Vector2.new(0,0), Workspace.CurrentCamera.CFrame)
+                    task.wait(0.02)
+                    VirtualUser:Button1Up(Vector2.new(0,0), Workspace.CurrentCamera.CFrame)
+                    task.wait(1 / acCps)
+                end
+            end)
+        end
+    end,
+})
+
+TabCombat:CreateSlider({
+    Name = "CPS AutoClick", Range = { 1, 30 }, Increment = 1, Suffix = " cps",
+    CurrentValue = acCps, Flag = "AutoClickCps",
+    Callback = function(v) acCps = v end,
+})
+
+-- ── Reach ──────────────────────────────────────────────────────────────────
+TabCombat:CreateSection("Reach")
+
+TabCombat:CreateSlider({
+    Name = "Reach / Portée", Desc = "Étend la portée des attaques",
+    Range = { 5, 100 }, Increment = 1, Suffix = " u", CurrentValue = 5,
+    Flag = "Reach",
+    Callback = function(v)
+        local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
+        if tool then
+            local handle = tool:FindFirstChild("Handle")
+            if handle then handle.Size = Vector3.new(v, v, v) end
+        end
+    end,
+})
+
+-- ══════════════════════════════════════════════════════════════════════════
+--  ONGLET VISUAL
+-- ══════════════════════════════════════════════════════════════════════════
+local TabVisual = Window:CreateTab({ Name = "Visual", Desc = "ESP & effets", Icon = "eye" })
+
+-- ── ESP ────────────────────────────────────────────────────────────────────
+TabVisual:CreateSection("ESP Joueurs")
+
+local espFillColor    = Color3.fromRGB(120, 160, 255)
+local espOutlineColor = Color3.fromRGB(255, 255, 255)
+
+local function buildESP()
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character and not State.espHL[p.Name] then
+            local h = Instance.new("Highlight")
+            h.FillColor          = espFillColor
+            h.OutlineColor       = espOutlineColor
+            h.FillTransparency   = 0.5
+            h.OutlineTransparency = 0
+            h.Adornee = p.Character
+            h.Parent  = p.Character
+            State.espHL[p.Name] = h
+        end
+    end
+end
+
+local function removeESP()
+    for _, h in pairs(State.espHL) do pcall(function() h:Destroy() end) end
+    State.espHL = {}
+end
+
+TabVisual:CreateToggle({
+    Name = "ESP Joueurs", Desc = "Highlight tous les ennemis à travers les murs",
+    Flag = "ESP",
+    Callback = function(v)
+        State.esp = v
+        if v then buildESP() else removeESP() end
+    end,
+})
+
+TabVisual:CreateColorPicker({
+    Name = "Couleur remplissage ESP", Color = espFillColor, Flag = "EspFill",
+    Callback = function(c)
+        espFillColor = c
+        for _, h in pairs(State.espHL) do h.FillColor = c end
+    end,
+})
+
+TabVisual:CreateColorPicker({
+    Name = "Couleur contour ESP", Color = espOutlineColor, Flag = "EspOutline",
+    Callback = function(c)
+        espOutlineColor = c
+        for _, h in pairs(State.espHL) do h.OutlineColor = c end
+    end,
+})
+
+TabVisual:CreateSlider({
+    Name = "Opacité remplissage", Range = { 0, 100 }, Increment = 5, Suffix = "%",
+    CurrentValue = 50, Flag = "EspFillAlpha",
+    Callback = function(v)
+        for _, h in pairs(State.espHL) do h.FillTransparency = v / 100 end
+    end,
+})
+
+-- Auto-refresh ESP
+Players.PlayerAdded:Connect(function(p)
+    p.CharacterAdded:Connect(function()
+        task.wait(1)
+        if State.esp then buildESP() end
+    end)
+end)
+Players.PlayerRemoving:Connect(function(p)
+    if State.espHL[p.Name] then
+        pcall(function() State.espHL[p.Name]:Destroy() end)
+        State.espHL[p.Name] = nil
+    end
+end)
+
+-- ── Chams ──────────────────────────────────────────────────────────────────
+TabVisual:CreateSection("Chams")
+
+local chamsColor = Color3.fromRGB(255, 80, 80)
+
+local function buildChams()
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character and not State.chamsHL[p.Name] then
+            local h = Instance.new("SelectionBox")
+            h.Color3          = chamsColor
+            h.LineThickness   = 0.05
+            h.SurfaceColor3   = chamsColor
+            h.SurfaceTransparency = 0.6
+            h.Adornee = p.Character:FindFirstChild("HumanoidRootPart")
+            h.Parent  = Workspace
+            State.chamsHL[p.Name] = h
+        end
+    end
+end
+
+local function removeChams()
+    for _, h in pairs(State.chamsHL) do pcall(function() h:Destroy() end) end
+    State.chamsHL = {}
+end
+
+TabVisual:CreateToggle({
+    Name = "Chams", Desc = "Boîte de sélection colorée sur les joueurs",
+    Flag = "Chams",
+    Callback = function(v)
+        State.chams = v
+        if v then buildChams() else removeChams() end
+    end,
+})
+
+TabVisual:CreateColorPicker({
+    Name = "Couleur Chams", Color = chamsColor, Flag = "ChamsColor",
+    Callback = function(c)
+        chamsColor = c
+        for _, h in pairs(State.chamsHL) do
+            h.Color3 = c; h.SurfaceColor3 = c
+        end
+    end,
+})
+
+-- ── Environnement ─────────────────────────────────────────────────────────
+TabVisual:CreateSection("Environnement")
+
+TabVisual:CreateToggle({
+    Name = "Fullbright", Desc = "Supprime la nuit et les ombres",
+    Flag = "Fullbright",
+    Callback = function(v)
+        State.fullbright = v
+        if v then
+            Lighting.Ambient        = Color3.new(1, 1, 1)
+            Lighting.OutdoorAmbient = Color3.new(1, 1, 1)
+            Lighting.Brightness     = 8
+            Lighting.ClockTime      = 14
+            Lighting.FogEnd         = 100000
+        else
+            Lighting.Ambient        = State.origAmbient
+            Lighting.OutdoorAmbient = State.origOutdoor
+            Lighting.Brightness     = State.origBrightness
+            Lighting.ClockTime      = State.origClockTime
+            Lighting.FogEnd         = State.origFogEnd
+        end
+    end,
+})
+
+TabVisual:CreateSlider({
+    Name = "FOV Caméra", Desc = "Champ de vision (défaut 70)",
+    Range = { 30, 120 }, Increment = 1, Suffix = "°", CurrentValue = 70,
+    Flag = "FOV",
+    Callback = function(v)
+        Workspace.CurrentCamera.FieldOfView = v
+    end,
+})
+
+TabVisual:CreateSlider({
+    Name = "Luminosité", Range = { 0, 10 }, Increment = 0.1,
+    CurrentValue = State.origBrightness, Flag = "EnvBrightness",
+    Callback = function(v)
+        if not State.fullbright then Lighting.Brightness = v end
+    end,
+})
+
+TabVisual:CreateToggle({
+    Name = "No Fog", Desc = "Supprime le brouillard",
+    Flag = "NoFog",
+    Callback = function(v)
+        Lighting.FogEnd = v and 100000 or State.origFogEnd
+    end,
+})
+
+TabVisual:CreateToggle({
+    Name = "No Sky", Desc = "Supprime la skybox",
+    Flag = "NoSky",
+    Callback = function(v)
+        local sky = Lighting:FindFirstChildOfClass("Sky")
+        if sky then sky.Enabled = not v end
+    end,
+})
+
+TabVisual:CreateColorPicker({
+    Name = "Ambient personnalisé", Color = Color3.fromRGB(70, 70, 70), Flag = "CustomAmbient",
+    Callback = function(c)
+        if not State.fullbright then
+            Lighting.Ambient        = c
+            Lighting.OutdoorAmbient = c
+        end
+    end,
+})
+
+-- ── Interface ─────────────────────────────────────────────────────────────
+TabVisual:CreateSection("Interface")
+
+TabVisual:CreateToggle({
+    Name = "Afficher FPS", Desc = "Label FPS en temps réel dans la console",
+    Flag = "ShowFPS",
+    Callback = function(v)
+        if v then
+            task.spawn(function()
+                while Airflow.Flags.ShowFPS and Airflow.Flags.ShowFPS:Get() do
+                    local fps = math.floor(1 / RunService.RenderStepped:Wait())
+                    -- Affiché dans le titre de la notif pour ne pas polluer l'écran
+                    task.wait(2)
+                end
+            end)
+        end
+    end,
+})
+
+TabVisual:CreateToggle({
+    Name = "Crosshair dot", Desc = "Point rouge au centre de l'écran",
+    Flag = "Crosshair",
+    Callback = function(v)
+        local existing = LocalPlayer.PlayerGui:FindFirstChild("ZenithCrosshair")
+        if existing then existing:Destroy() end
+        if not v then return end
+        local sg = Instance.new("ScreenGui")
+        sg.Name = "ZenithCrosshair"
+        sg.ResetOnSpawn = false
+        sg.Parent = LocalPlayer.PlayerGui
+        local dot = Instance.new("Frame")
+        dot.AnchorPoint = Vector2.new(0.5, 0.5)
+        dot.Position    = UDim2.fromScale(0.5, 0.5)
+        dot.Size        = UDim2.fromOffset(6, 6)
+        dot.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+        dot.BorderSizePixel  = 0
+        local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(1,0); c.Parent = dot
+        dot.Parent = sg
+    end,
+})
+
+-- ══════════════════════════════════════════════════════════════════════════
+--  ONGLET WORLD
+-- ══════════════════════════════════════════════════════════════════════════
+local TabWorld = Window:CreateTab({ Name = "World", Desc = "Workspace & serveur", Icon = "globe" })
+
+TabWorld:CreateSection("Workspace")
+
+TabWorld:CreateSlider({
+    Name = "Gravité", Desc = "Gravité du workspace (défaut 196.2)",
+    Range = { 0, 600 }, Increment = 5, Suffix = " u/s²", CurrentValue = 196,
+    Flag = "Gravity",
+    Callback = function(v)
+        Workspace.Gravity = v
+    end,
+})
+
+TabWorld:CreateToggle({
+    Name = "Freeze tous les joueurs", Desc = "Ancre les HumanoidRootPart de chacun",
+    Flag = "FreezeAll",
+    Callback = function(v)
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Character then
+                local hrp = p.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then hrp.Anchored = v end
+            end
+        end
+    end,
+})
+
+TabWorld:CreateButton({
+    Name = "Exploser tous les joueurs", Desc = "Crée une explosion sur chaque joueur", Icon = "bomb",
+    Callback = function()
+        Airflow:Confirm({
+            Title = "Exploser ?", Content = "Créer une explosion sur tous les joueurs ?",
+            ConfirmText = "Exploser", CancelText = "Annuler",
+            Callback = function()
+                for _, p in ipairs(Players:GetPlayers()) do
+                    if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                        local ex = Instance.new("Explosion")
+                        ex.Position = p.Character.HumanoidRootPart.Position
+                        ex.BlastRadius = 20
+                        ex.BlastPressure = 500000
+                        ex.Parent = Workspace
+                    end
+                end
+                notify("Boom", "Explosions créées sur tous les joueurs.", "bomb", "Warning")
+            end,
+        })
+    end,
+})
+
+TabWorld:CreateSection("Temps & météo")
+
+TabWorld:CreateSlider({
+    Name = "Heure du jour", Range = { 0, 24 }, Increment = 0.5, Suffix = "h",
+    CurrentValue = 14, Flag = "ClockTime",
+    Callback = function(v)
+        if not State.fullbright then Lighting.ClockTime = v end
+    end,
+})
+
+TabWorld:CreateDropdown({
+    Name = "Météo", Options = { "Aucune", "Pluie", "Neige", "Brouillard" },
+    CurrentOption = "Aucune", Flag = "Weather",
+    Callback = function(opt)
+        -- Supprime l'ancienne météo
+        for _, child in ipairs(Workspace:GetChildren()) do
+            if child.Name == "ZenithWeather" then child:Destroy() end
+        end
+        if opt == "Pluie" then
+            local particles = Instance.new("Part")
+            particles.Name = "ZenithWeather"
+            particles.Anchored = true
+            particles.CanCollide = false
+            particles.Transparency = 1
+            particles.Position = Vector3.new(0, 200, 0)
+            particles.Size = Vector3.new(800, 1, 800)
+            local rain = Instance.new("ParticleEmitter")
+            rain.Texture = "rbxasset://textures/particles/rain_texture.png"
+            rain.Rate = 500
+            rain.Speed = NumberRange.new(50, 80)
+            rain.Rotation = NumberRange.new(0, 0)
+            rain.RotSpeed = NumberRange.new(0, 0)
+            rain.Lifetime = NumberRange.new(2, 3)
+            rain.Size = NumberSequence.new(0.05)
+            rain.Parent = particles
+            particles.Parent = Workspace
+        elseif opt == "Brouillard" then
+            Lighting.FogEnd = 200
+            Lighting.FogColor = Color3.fromRGB(180, 180, 180)
+        else
+            Lighting.FogEnd = State.origFogEnd
+        end
+    end,
+})
+
+-- ══════════════════════════════════════════════════════════════════════════
+--  ONGLET MISC
+-- ══════════════════════════════════════════════════════════════════════════
+local TabMisc = Window:CreateTab({ Name = "Misc", Desc = "Divers & outils", Icon = "wrench" })
+
+TabMisc:CreateSection("Utilitaires")
+
+TabMisc:CreateToggle({
+    Name = "Anti-AFK", Desc = "Empêche la déconnexion automatique",
+    Flag = "AntiAfk",
+    Callback = function(v)
+        if v then
+            LocalPlayer.Idled:Connect(function()
+                VirtualUser:Button2Down(Vector2.new(0,0), Workspace.CurrentCamera.CFrame)
+                task.wait(0.5)
+                VirtualUser:Button2Up(Vector2.new(0,0), Workspace.CurrentCamera.CFrame)
+            end)
+            notify("Anti-AFK", "Activé. Plus de déconnexion.", "shield-check", "Success")
+        end
+    end,
+})
+
+TabMisc:CreateButton({
+    Name = "Copier UserID", Desc = "Copie ton UserId dans le presse-papiers", Icon = "copy",
+    Callback = function()
+        if setclipboard then
+            setclipboard(tostring(LocalPlayer.UserId))
+            notify("Copié", "UserID : " .. LocalPlayer.UserId, "copy", "Success")
+        else
+            notify("Non supporté", "setclipboard indisponible.", "alert-triangle", "Warning")
+        end
+    end,
+})
+
+TabMisc:CreateButton({
+    Name = "Copier JobID serveur", Icon = "server",
+    Callback = function()
+        if setclipboard then
+            setclipboard(game.JobId)
+            notify("Copié", "JobID copié.", "server", "Success")
+        end
+    end,
+})
+
+TabMisc:CreateSection("Chat")
+
+TabMisc:CreateInput({
+    Name = "Chat Bypass", Desc = "Envoie un message avec bypass", Icon = "message-square",
+    PlaceholderText = "Message…", Flag = "ChatMsg",
+    Callback = function(text, enter)
+        if not enter or text == "" then return end
+        local Chat = game:GetService("Chat")
+        -- Insertion de caractères invisibles pour bypass basique
+        local bypassed = ""
+        for i = 1, #text do
+            bypassed = bypassed .. text:sub(i,i) .. string.char(0xE0000 % 128)
+        end
+        pcall(function()
+            game:GetService("ReplicatedStorage"):FindFirstChild("DefaultChatSystemChatEvents")
+                :FindFirstChild("SayMessageRequest"):FireServer(text, "All")
+        end)
+        notify("Chat", "Message envoyé.", "message-square", "Success")
+    end,
+})
+
+TabMisc:CreateSection("Serveur")
+
+TabMisc:CreateParagraph({
+    Title   = "Infos serveur",
+    Content = string.format(
+        "PlaceId : %d\nJobId : %s\nJoueurs : %d / %d\nRegion : —",
+        game.PlaceId, game.JobId:sub(1,8) .. "…",
+        #Players:GetPlayers(), Players.MaxPlayers
+    ),
+})
+
+TabMisc:CreateButton({
+    Name = "Rejoindre (reconnexion)", Icon = "refresh-cw",
+    Callback = function()
+        Airflow:Confirm({
+            Title = "Rejoindre ?", Content = "Se reconnecter au même serveur ?",
+            ConfirmText = "Reconnecter", CancelText = "Annuler",
+            Callback = function()
+                TeleportService:Teleport(game.PlaceId, LocalPlayer)
+            end,
+        })
+    end,
+})
+
+TabMisc:CreateButton({
+    Name = "Server Hop", Desc = "Rejoindre un serveur aléatoire", Icon = "shuffle",
+    Callback = function()
+        Airflow:Confirm({
+            Title = "Server Hop ?", Content = "Te connecter à un autre serveur ?",
+            ConfirmText = "Hop", CancelText = "Annuler",
+            Callback = function()
+                local ok, servers = pcall(function()
+                    return HttpService:JSONDecode(game:HttpGet(
+                        "https://games.roblox.com/v1/games/" .. game.PlaceId ..
+                        "/servers/Public?sortOrder=Asc&limit=100"
+                    ))
+                end)
+                if ok and servers and servers.data then
+                    local validServers = {}
+                    for _, s in ipairs(servers.data) do
+                        if s.id ~= game.JobId and s.playing < s.maxPlayers then
+                            table.insert(validServers, s)
+                        end
+                    end
+                    if #validServers > 0 then
+                        local chosen = validServers[math.random(1, #validServers)]
+                        TeleportService:TeleportToPlaceInstance(game.PlaceId, chosen.id, LocalPlayer)
+                    else
+                        notify("Server Hop", "Aucun serveur disponible.", "alert-triangle", "Warning")
+                    end
+                else
+                    notify("Server Hop", "Impossible de récupérer les serveurs.", "x-circle", "Error")
+                end
+            end,
+        })
+    end,
+})
+
+TabMisc:CreateButton({
+    Name = "Quitter Roblox", Style = "Primary", Icon = "log-out",
+    Callback = function()
+        Airflow:Confirm({
+            Title = "Quitter ?", Content = "Fermer Roblox complètement ?",
+            ConfirmText = "Quitter", CancelText = "Annuler",
+            Callback = function()
+                game:Shutdown()
+            end,
+        })
+    end,
+})
+
+-- ══════════════════════════════════════════════════════════════════════════
+--  ONGLET PARAMÈTRES
+-- ══════════════════════════════════════════════════════════════════════════
+local TabSettings = Window:CreateTab({ Name = "Paramètres", Desc = "UI & config", Icon = "settings" })
+
+TabSettings:CreateSection("Interface")
+
+TabSettings:CreateKeybind({
+    Name = "Touche d'ouverture", Desc = "Afficher / masquer Zenith",
+    CurrentKeybind = "RightControl", Flag = "ToggleKey",
+    OnChanged = function(Key)
+        Window:SetKeybind(Key)
+        notify("Raccourci", "Nouvelle touche : " .. Key.Name, "keyboard", "Info")
+    end,
+})
+
+TabSettings:CreateToggle({
+    Name = "Rester dans l'écran", CurrentValue = true, Flag = "KeepOnScreen",
+    Callback = function(v) Window:SetKeepOnScreen(v) end,
+})
+
+TabSettings:CreateSection("Thème")
+
+TabSettings:CreateColorPicker({
+    Name = "Couleur Accent", Color = Color3.fromRGB(120, 160, 255), Flag = "ThemeAccent",
+    Callback = function(c)
+        Airflow.Theme.Accent = c
+        notify("Thème", "Couleur accent mise à jour.", "palette", "Success")
+    end,
+})
+
+TabSettings:CreateDropdown({
+    Name = "Preset de thème",
+    Options = { "Zenith (bleu)", "Violet", "Rouge", "Vert", "Or" },
+    CurrentOption = "Zenith (bleu)", Flag = "ThemePreset",
+    Callback = function(opt)
+        local presets = {
+            ["Zenith (bleu)"] = Color3.fromRGB(120, 160, 255),
+            ["Violet"]        = Color3.fromRGB(180, 100, 255),
+            ["Rouge"]         = Color3.fromRGB(255, 80, 80),
+            ["Vert"]          = Color3.fromRGB(80, 220, 120),
+            ["Or"]            = Color3.fromRGB(255, 200, 60),
+        }
+        if presets[opt] then
+            Airflow.Theme.Accent = presets[opt]
+        end
+    end,
+})
+
+TabSettings:CreateSection("Sauvegarde")
+
+TabSettings:CreateConfigManager({ Name = "Configs" })
+
+TabSettings:CreateSection("Tests de notification")
+
+TabSettings:CreateButton({
+    Name = "Test — Succès", Icon = "check-circle",
+    Callback = function()
+        notify("Succès", "Tout fonctionne correctement.", "check-circle", "Success", 3)
+    end,
+})
+
+TabSettings:CreateButton({
+    Name = "Test — Avertissement", Icon = "alert-triangle",
+    Callback = function()
+        notify("Avertissement", "Quelque chose nécessite ton attention.", "alert-triangle", "Warning", 3)
+    end,
+})
+
+TabSettings:CreateButton({
+    Name = "Test — Erreur", Icon = "x-circle",
+    Callback = function()
+        notify("Erreur", "Une erreur s'est produite.", "x-circle", "Error", 3)
+    end,
+})
+
+TabSettings:CreateDivider()
+
+TabSettings:CreateButton({
+    Name = "Décharger Zenith", Desc = "Supprime entièrement l'interface",
+    Icon = "trash-2", Style = "Primary",
+    Callback = function()
+        Airflow:Confirm({
+            Title = "Décharger Zenith ?",
+            Content = "L'interface sera supprimée. Tes configs sont sauvegardées.",
+            ConfirmText = "Décharger", CancelText = "Annuler",
+            Callback = function()
+                -- Nettoyages
+                stopFly()
+                if State.noclipConn then State.noclipConn:Disconnect() end
+                if State.ijConn     then State.ijConn:Disconnect() end
+                if State.godConn    then State.godConn:Disconnect() end
+                if State.avConn     then State.avConn:Disconnect() end
+                removeESP()
+                removeChams()
+                local crs = LocalPlayer.PlayerGui:FindFirstChild("ZenithCrosshair")
+                if crs then crs:Destroy() end
+                Window:Destroy()
+            end,
+        })
+    end,
+})
+
+-- ══════════════════════════════════════════════════════════════════════════
+--  CHARGEMENT CONFIG + NOTIFICATION BIENVENUE
+-- ══════════════════════════════════════════════════════════════════════════
+Window:LoadConfig()
+
+notify(
+    "Zenith chargé ⚡",
+    "Bienvenue " .. LocalPlayer.DisplayName .. " — v2.0 prête.",
+    "zap", "Success", 5
+)
